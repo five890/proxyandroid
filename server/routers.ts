@@ -23,6 +23,12 @@ const clientSessionProcedure = publicProcedure.use(async ({ ctx, next }) => {
     if (!credential || !credential.active) {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta inválida ou desativada' });
     }
+    // Check if the credential itself has expired (in addition to session expiry)
+    if (credential.expiresAt && new Date(credential.expiresAt) < new Date()) {
+      // Auto-deactivate the credential to prevent further access
+      await db.updateClientCredentialActive(credential.id, false);
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'Este login expirou. Entre em contato com o administrador para renovar.' });
+    }
     return next({ ctx: { ...ctx, clientSession: session, credential } });
   } catch (e) {
     if (e instanceof TRPCError) throw e;
@@ -78,6 +84,10 @@ export const appRouter = router({
         }
         if (!credential.active) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Esta conta está desativada. Entre em contato com o administrador.' });
+        }
+        // Check if account has expired
+        if (credential.expiresAt && new Date(credential.expiresAt) < new Date()) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Este login expirou. Entre em contato com o administrador para renovar.' });
         }
         if (!verifyPassword(input.password, credential.passwordHash)) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas' });
@@ -148,11 +158,19 @@ export const appRouter = router({
         if (!credential || !credential.active) {
           return null;
         }
+        // Check if account has expired
+        if (credential.expiresAt && new Date(credential.expiresAt) < new Date()) {
+          // Auto-deactivate
+          await db.updateClientCredentialActive(credential.id, false);
+          return null;
+        }
         return {
           id: credential.id,
           username: credential.username,
           credits: credential.credits,
           label: credential.label || null,
+          expiresAt: credential.expiresAt ? credential.expiresAt.toISOString() : null,
+          durationDays: credential.durationDays,
         };
       } catch {
         return null;
@@ -275,6 +293,9 @@ export const appRouter = router({
         active: c.active,
         credits: c.credits,
         label: c.label,
+        role: c.role,
+        durationDays: c.durationDays,
+        expiresAt: c.expiresAt,
         deviceFingerprint: c.deviceFingerprint,
         deviceIP: c.deviceIP,
         deviceLockedAt: c.deviceLockedAt,
@@ -290,6 +311,7 @@ export const appRouter = router({
         label: z.string().optional(),
         credits: z.number().int().min(0).optional(),
         role: z.enum(['client', 'admin']).optional(),
+        durationDays: z.number().int().min(1).optional(),
       }))
       .mutation(async ({ input }) => {
         const existing = await db.getClientCredentialByUsername(input.username);
@@ -297,6 +319,9 @@ export const appRouter = router({
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
         }
         const { hash } = hashPassword(input.password);
+        const expiresAt = input.durationDays
+          ? new Date(Date.now() + input.durationDays * 24 * 60 * 60 * 1000)
+          : null;
         await db.createClientCredential({
           username: input.username,
           passwordHash: hash,
@@ -304,6 +329,8 @@ export const appRouter = router({
           credits: input.credits || 0,
           active: true,
           role: input.role || 'client',
+          durationDays: input.durationDays || null,
+          expiresAt: expiresAt,
         });
       }),
 
@@ -313,16 +340,22 @@ export const appRouter = router({
         username: z.string().min(3).max(100),
         label: z.string().optional(),
         active: z.boolean(),
+        durationDays: z.number().int().min(1).optional(),
       }))
       .mutation(async ({ input }) => {
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing && existing.id !== input.id) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
         }
+        const expiresAt = input.durationDays
+          ? new Date(Date.now() + input.durationDays * 24 * 60 * 60 * 1000)
+          : undefined;
         await db.updateClientCredential(input.id, {
           username: input.username,
           label: input.label || null,
           active: input.active,
+          durationDays: input.durationDays || null,
+          ...(expiresAt !== undefined ? { expiresAt } : {}),
         });
       }),
 

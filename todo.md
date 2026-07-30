@@ -22,3 +22,6 @@
 - [x] Remover aba "Administrador" da página de login (não deve aparecer na página inicial)
 - [x] Criar página separada /admin-login para acesso administrativo
 - [x] Corrigir: quando admin altera créditos, não reflete no dashboard do cliente
+- [x] Adicionar sistema de expiração de login (duração em dias configurável pelo admin)
+- [x] Desativação automática após expiração
+- [x] Mostrar dias restantes no painel admin e dashboard do cliente

@@ -29,6 +29,8 @@ export const clientCredentials = mysqlTable("client_credentials", {
   passwordHash: varchar("passwordHash", { length: 256 }).notNull(),
   active: boolean("active").default(true).notNull(),
   credits: int("credits").default(0).notNull(),
+  durationDays: int("durationDays"),
+  expiresAt: timestamp("expiresAt"),
   deviceFingerprint: varchar("deviceFingerprint", { length: 512 }),
   deviceIP: varchar("deviceIP", { length: 64 }),
   deviceLockedAt: timestamp("deviceLockedAt"),

@@ -40,6 +40,7 @@ import {
   ShieldCheck,
   LogOut,
   Loader2,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -131,6 +132,7 @@ function ClientManagement() {
               <TableHead>Usuário</TableHead>
               <TableHead>Label</TableHead>
               <TableHead>Créditos</TableHead>
+              <TableHead>Validade</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Dispositivo</TableHead>
               <TableHead>Último Acesso</TableHead>
@@ -156,8 +158,33 @@ function ClientManagement() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={client.active ? "default" : "destructive"} className="text-xs">
-                    {client.active ? "Ativo" : "Inativo"}
+                  {client.expiresAt ? (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-500" />
+                      <span className="text-xs text-amber-500">
+                        {(() => {
+                          const daysLeft = Math.ceil((new Date(client.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                          if (daysLeft <= 0) return "Expirado";
+                          if (daysLeft === 1) return "1 dia";
+                          return `${daysLeft} dias`;
+                        })()}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Ilimitado</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={(() => {
+                    const isExpired = client.expiresAt && new Date(client.expiresAt) < new Date();
+                    if (isExpired) return "destructive";
+                    return client.active ? "default" : "destructive";
+                  })()} className="text-xs">
+                    {(() => {
+                      const isExpired = client.expiresAt && new Date(client.expiresAt) < new Date();
+                      if (isExpired) return "Expirado";
+                      return client.active ? "Ativo" : "Inativo";
+                    })()}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -454,6 +481,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   const [label, setLabel] = useState("");
   const [credits, setCredits] = useState("0");
   const [role, setRole] = useState<"client" | "admin">("client");
+  const [durationDays, setDurationDays] = useState("1");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -463,12 +491,14 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
       label: label || undefined,
       credits: parseInt(credits) || 0,
       role,
+      durationDays: parseInt(durationDays) || undefined,
     });
     setUsername("");
     setPassword("");
     setLabel("");
     setCredits("0");
     setRole("client");
+    setDurationDays("1");
   };
 
   return (
@@ -524,6 +554,20 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
             />
           </div>
           <div className="space-y-2">
+            <Label>Duração do Acesso (dias)</Label>
+            <Input
+              type="number"
+              value={durationDays}
+              onChange={(e) => setDurationDays(e.target.value)}
+              min="1"
+              placeholder="Ex: 1 para 1 dia, 30 para 30 dias"
+              className="bg-background/50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Após esse período, o login será desativado automaticamente.
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label>Tipo</Label>
             <div className="flex gap-3">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -573,6 +617,7 @@ function EditClientDialog({ client, onClose, mutation }: any) {
   const [label, setLabel] = useState(client.label || "");
   const [active, setActive] = useState(client.active);
   const [newPassword, setNewPassword] = useState("");
+  const [durationDays, setDurationDays] = useState(client.durationDays ? String(client.durationDays) : "1");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -581,6 +626,7 @@ function EditClientDialog({ client, onClose, mutation }: any) {
       username,
       label: label || undefined,
       active,
+      durationDays: parseInt(durationDays) || undefined,
     });
   };
 
@@ -647,6 +693,21 @@ function EditClientDialog({ client, onClose, mutation }: any) {
                 Atualizar
               </Button>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Duração do Acesso (dias)</Label>
+            <Input
+              type="number"
+              value={durationDays}
+              onChange={(e) => setDurationDays(e.target.value)}
+              min="1"
+              className="bg-background/50"
+            />
+            <p className="text-xs text-muted-foreground">
+              {client.expiresAt
+                ? `Expira em: ${new Date(client.expiresAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}`
+                : "Sem expiração definida"}
+            </p>
           </div>
           <div className="flex items-center justify-between">
             <Label>Ativo</Label>

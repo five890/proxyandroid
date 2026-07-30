@@ -14,6 +14,7 @@ import {
   Monitor,
   AlertTriangle,
   Loader2,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/lib/utils";
@@ -105,6 +106,14 @@ export default function Dashboard() {
               <span className="text-sm font-medium text-primary">{session.credits}</span>
               <span className="text-xs text-muted-foreground">créditos</span>
             </div>
+            {session.expiresAt && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <Clock className="w-3 h-3 text-amber-500" />
+                <span className="text-xs text-amber-500 font-medium">
+                  Expira em {Math.ceil((new Date(session.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} dias
+                </span>
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -129,6 +138,19 @@ export default function Dashboard() {
             Seus arquivos de instalação estão disponíveis abaixo.
           </p>
         </div>
+
+        {/* Expiration Warning */}
+        {session.expiresAt && new Date(session.expiresAt) < new Date(Date.now() + 24 * 60 * 60 * 1000) && (
+          <div className="mb-6 flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <Clock className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-500">Acesso próximo de expirar</p>
+              <p className="text-xs text-muted-foreground">
+                Seu acesso expira em {new Date(session.expiresAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}. Entre em contato com o administrador para renovar.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Device Warning */}
         <div className="mb-6 flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/10">
