@@ -1,0 +1,915 @@
+import { useState, useEffect } from "react";
+import { formatBytes } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import {
+  Users,
+  FileUp,
+  Plus,
+  Pencil,
+  Trash2,
+  RotateCcw,
+  CreditCard,
+  Monitor,
+  File,
+  Download,
+  Upload,
+  History,
+  ShieldCheck,
+  LogOut,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
+
+// ============ CLIENT MANAGEMENT ============
+function ClientManagement() {
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingClient, setEditingClient] = useState<any>(null);
+  const [showCredits, setShowCredits] = useState<any>(null);
+  const [showHistory, setShowHistory] = useState<any>(null);
+  const utils = trpc.useUtils();
+
+  const clientsQuery = trpc.admin.listClients.useQuery();
+  const createMutation = trpc.admin.createClient.useMutation({
+    onSuccess: () => {
+      toast.success("Cliente criado com sucesso");
+      setShowCreate(false);
+      utils.admin.listClients.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const updateMutation = trpc.admin.updateClient.useMutation({
+    onSuccess: () => {
+      toast.success("Cliente atualizado com sucesso");
+      setEditingClient(null);
+      utils.admin.listClients.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const toggleMutation = trpc.admin.toggleClientActive.useMutation({
+    onSuccess: () => utils.admin.listClients.invalidate(),
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const resetDeviceMutation = trpc.admin.resetClientDevice.useMutation({
+    onSuccess: () => {
+      toast.success("Dispositivo resetado com sucesso");
+      utils.admin.listClients.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const deleteMutation = trpc.admin.deleteClient.useMutation({
+    onSuccess: () => {
+      toast.success("Cliente removido com sucesso");
+      utils.admin.listClients.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const addCreditsMutation = trpc.admin.addCredits.useMutation({
+    onSuccess: () => {
+      toast.success("Créditos atualizados com sucesso");
+      setShowCredits(null);
+      utils.admin.listClients.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const historyQuery = showHistory
+    ? trpc.admin.getCreditHistory.useQuery({ credentialId: showHistory.id })
+    : null;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Gerenciamento de Clientes</h2>
+          <p className="text-sm text-muted-foreground">
+            Crie e gerencie credenciais de acesso
+          </p>
+        </div>
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Novo Cliente
+        </Button>
+      </div>
+
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-secondary/30">
+              <TableHead>Usuário</TableHead>
+              <TableHead>Label</TableHead>
+              <TableHead>Créditos</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Dispositivo</TableHead>
+              <TableHead>Último Acesso</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {clientsQuery.data?.map((client: any) => (
+              <TableRow key={client.id} className="hover:bg-secondary/20">
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    {client.username}
+                    {client.role === 'admin' && (
+                      <Badge variant="secondary" className="text-[10px]">ADMIN</Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>{client.label || "—"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-3 h-3 text-primary" />
+                    <span className="font-medium">{client.credits}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={client.active ? "default" : "destructive"} className="text-xs">
+                    {client.active ? "Ativo" : "Inativo"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {client.deviceFingerprint ? (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Monitor className="w-3 h-3" />
+                      Vinculado
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Nenhum</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <span className="text-xs text-muted-foreground">
+                    {client.lastLoginAt
+                      ? new Date(client.lastLoginAt).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "Nunca"}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditingClient(client)}
+                      title="Editar"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowCredits(client)}
+                      title="Créditos"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowHistory(client)}
+                      title="Histórico"
+                    >
+                      <History className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => resetDeviceMutation.mutate({ id: client.id })}
+                      title="Resetar Dispositivo"
+                      disabled={!client.deviceFingerprint}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+                    <div className="flex items-center mx-1">
+                      <Switch
+                        checked={client.active}
+                        onCheckedChange={(checked) =>
+                          toggleMutation.mutate({ id: client.id, active: checked })
+                        }
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm("Tem certeza que deseja remover este cliente?")) {
+                          deleteMutation.mutate({ id: client.id });
+                        }
+                      }}
+                      className="text-destructive hover:text-destructive"
+                      title="Remover"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!clientsQuery.data?.length && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                  Nenhum cliente cadastrado. Clique em "Novo Cliente" para começar.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Create Client Dialog */}
+      <CreateClientDialog open={showCreate} onClose={() => setShowCreate(false)} mutation={createMutation} />
+
+      {/* Edit Client Dialog */}
+      {editingClient && (
+        <EditClientDialog
+          client={editingClient}
+          onClose={() => setEditingClient(null)}
+          mutation={updateMutation}
+        />
+      )}
+
+      {/* Credits Dialog */}
+      {showCredits && (
+        <CreditsDialog
+          client={showCredits}
+          onClose={() => setShowCredits(null)}
+          mutation={addCreditsMutation}
+        />
+      )}
+
+      {/* History Dialog */}
+      {showHistory && (
+        <HistoryDialog
+          client={showHistory}
+          transactions={historyQuery?.data || []}
+          isLoading={historyQuery?.isLoading || false}
+          onClose={() => setShowHistory(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============ FILE MANAGEMENT ============
+function FileManagement() {
+  const [showUpload, setShowUpload] = useState(false);
+  const utils = trpc.useUtils();
+
+  const filesQuery = trpc.admin.listFiles.useQuery();
+  const uploadMutation = trpc.admin.uploadFile.useMutation({
+    onSuccess: () => {
+      toast.success("Arquivo enviado com sucesso");
+      setShowUpload(false);
+      utils.admin.listFiles.invalidate();
+      utils.clientFiles.files.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const deleteMutation = trpc.admin.deleteFile.useMutation({
+    onSuccess: () => {
+      toast.success("Arquivo removido com sucesso");
+      utils.admin.listFiles.invalidate();
+      utils.clientFiles.files.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      uploadMutation.mutate({
+        filename: `${Date.now()}_${file.name.replace(/\s/g, "_")}`,
+        originalName: file.name,
+        data: base64,
+        mimeType: file.type,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Gerenciamento de Arquivos</h2>
+          <p className="text-sm text-muted-foreground">
+            Faça upload e gerencie arquivos de instalação
+          </p>
+        </div>
+        <Button
+          onClick={() => setShowUpload(true)}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+        >
+          <Upload className="w-4 h-4" />
+          Enviar Arquivo
+        </Button>
+      </div>
+
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-secondary/30">
+              <TableHead>Arquivo</TableHead>
+              <TableHead>Tamanho</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filesQuery.data?.map((file: any) => (
+              <TableRow key={file.id} className="hover:bg-secondary/20">
+                <TableCell className="font-medium flex items-center gap-2">
+                  <File className="w-4 h-4 text-primary" />
+                  {file.originalName}
+                </TableCell>
+                <TableCell>{formatBytes(file.fileSize || 0)}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{file.mimeType}</TableCell>
+                <TableCell>
+                  {new Date(file.createdAt).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (confirm("Remover este arquivo?")) {
+                        deleteMutation.mutate({ id: file.id });
+                      }
+                    }}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!filesQuery.data?.length && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                  Nenhum arquivo disponível. Clique em "Enviar Arquivo" para começar.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Upload Dialog */}
+      <Dialog open={showUpload} onOpenChange={setShowUpload}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Enviar Arquivo</DialogTitle>
+            <DialogDescription>
+              Selecione um arquivo para disponibilizar aos clientes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="file-upload" className="cursor-pointer">
+              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
+                <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground mb-1">
+                  Clique para selecionar um arquivo
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  Aceita qualquer formato de arquivo
+                </p>
+              </div>
+            </Label>
+            <input
+              id="file-upload"
+              type="file"
+              className="hidden"
+              onChange={handleFileSelect}
+              accept="*/*"
+            />
+            {uploadMutation.isPending && (
+              <div className="mt-4 text-center">
+                <p className="text-sm text-primary animate-pulse">Enviando arquivo...</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowUpload(false)}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ============ DIALOGS ============
+function CreateClientDialog({ open, onClose, mutation }: any) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [label, setLabel] = useState("");
+  const [credits, setCredits] = useState("0");
+  const [role, setRole] = useState<"client" | "admin">("client");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate({
+      username,
+      password,
+      label: label || undefined,
+      credits: parseInt(credits) || 0,
+      role,
+    });
+    setUsername("");
+    setPassword("");
+    setLabel("");
+    setCredits("0");
+    setRole("client");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border">
+        <DialogHeader>
+          <DialogTitle>Criar Novo Cliente</DialogTitle>
+          <DialogDescription>
+            Preencha os dados para criar um novo acesso.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Usuário</Label>
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="nome do usuário"
+              required
+              minLength={3}
+              className="bg-background/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Senha</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="mínimo 6 caracteres"
+              required
+              minLength={6}
+              className="bg-background/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Label (opcional)</Label>
+            <Input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="identificação do cliente"
+              className="bg-background/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Créditos Iniciais</Label>
+            <Input
+              type="number"
+              value={credits}
+              onChange={(e) => setCredits(e.target.value)}
+              min="0"
+              className="bg-background/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <div className="flex gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="role"
+                  value="client"
+                  checked={role === "client"}
+                  onChange={() => setRole("client")}
+                  className="accent-primary"
+                />
+                <span className="text-sm">Cliente</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="role"
+                  value="admin"
+                  checked={role === "admin"}
+                  onChange={() => setRole("admin")}
+                  className="accent-gold"
+                />
+                <span className="text-sm">Administrador</span>
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={mutation.isPending || !username || !password}
+            >
+              {mutation.isPending ? "Criando..." : "Criar Cliente"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditClientDialog({ client, onClose, mutation }: any) {
+  const [username, setUsername] = useState(client.username);
+  const [label, setLabel] = useState(client.label || "");
+  const [active, setActive] = useState(client.active);
+  const [newPassword, setNewPassword] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate({
+      id: client.id,
+      username,
+      label: label || undefined,
+      active,
+    });
+  };
+
+  const updatePasswordMutation = trpc.admin.updateClientPassword.useMutation({
+    onSuccess: () => {
+      toast.success("Senha atualizada com sucesso");
+      setNewPassword("");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border">
+        <DialogHeader>
+          <DialogTitle>Editar Cliente</DialogTitle>
+          <DialogDescription>
+            Atualize as informações do cliente.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Usuário</Label>
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="bg-background/50"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Label</Label>
+            <Input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              className="bg-background/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Nova Senha (deixe vazio para manter)</Label>
+            <div className="flex gap-2">
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="mínimo 6 caracteres"
+                minLength={6}
+                className="bg-background/50"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (newPassword.length >= 6) {
+                    updatePasswordMutation.mutate({
+                      id: client.id,
+                      password: newPassword,
+                    });
+                  }
+                }}
+                disabled={newPassword.length < 6}
+              >
+                Atualizar
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label>Ativo</Label>
+            <Switch checked={active} onCheckedChange={setActive} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CreditsDialog({ client, onClose, mutation }: any) {
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const numAmount = parseInt(amount);
+    if (isNaN(numAmount)) return;
+    mutation.mutate({
+      id: client.id,
+      amount: numAmount,
+      reason: reason || undefined,
+    });
+    setAmount("");
+    setReason("");
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border">
+        <DialogHeader>
+          <DialogTitle>Gerenciar Créditos</DialogTitle>
+          <DialogDescription>
+            Saldo atual: <span className="font-bold text-primary">{client.credits} créditos</span>
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Quantidade (use negativo para remover)</Label>
+            <Input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="ex: 10 ou -5"
+              className="bg-background/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Motivo (opcional)</Label>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="ex: Renovação mensal"
+              className="bg-background/50"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => { setAmount("1"); setReason("Adição de crédito"); }}
+            >
+              +1
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => { setAmount("5"); setReason("Adição de créditos"); }}
+            >
+              +5
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => { setAmount("10"); setReason("Adição de créditos"); }}
+            >
+              +10
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => { setAmount((-client.credits).toString()); setReason("Zeramento de créditos"); }}
+            >
+              Zerar
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={mutation.isPending || !amount}
+            >
+              {mutation.isPending ? "Aplicando..." : "Aplicar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function HistoryDialog({ client, transactions, isLoading, onClose }: any) {
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Histórico de Créditos</DialogTitle>
+          <DialogDescription>
+            {client.username} — Movimentações de crédito
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          {isLoading ? (
+            <p className="text-center text-muted-foreground py-8">Carregando...</p>
+          ) : transactions.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">Nenhuma movimentação registrada.</p>
+          ) : (
+            <div className="space-y-2">
+              {transactions.map((tx: any) => (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/30"
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {tx.amount > 0 ? (
+                        <span className="text-green-500">+{tx.amount}</span>
+                      ) : (
+                        <span className="text-red-500">{tx.amount}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{tx.reason}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(tx.createdAt).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============ MAIN ADMIN PAGE ============
+export default function Admin() {
+  const [, navigate] = useLocation();
+  const [loading, setLoading] = useState(true);
+
+  // Check admin session
+  const adminMeQuery = trpc.auth.adminMe.useQuery();
+
+  useEffect(() => {
+    if (!adminMeQuery.isLoading && !adminMeQuery.data) {
+      navigate("/login");
+    }
+    if (!adminMeQuery.isLoading) {
+      setLoading(false);
+    }
+  }, [adminMeQuery.isLoading, adminMeQuery.data, navigate]);
+
+  const logoutMutation = trpc.auth.adminLogout.useMutation({
+    onSuccess: () => {
+      navigate("/login");
+    },
+  });
+
+  const handleAdminLogout = () => {
+    logoutMutation.mutate();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!adminMeQuery.data) return null;
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Admin Header */}
+      <header className="glass sticky top-0 z-50 border-b border-border/50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4 text-gold" />
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold text-foreground">Painel Administrativo</h1>
+              <p className="text-xs text-muted-foreground">{adminMeQuery.data.username}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/")}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Início
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAdminLogout}
+              className="text-muted-foreground hover:text-foreground gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <Tabs defaultValue="clients" className="space-y-6">
+          <TabsList className="bg-secondary/30">
+            <TabsTrigger value="clients" className="gap-2">
+              <Users className="w-4 h-4" />
+              Clientes
+            </TabsTrigger>
+            <TabsTrigger value="files" className="gap-2">
+              <FileUp className="w-4 h-4" />
+              Arquivos
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="clients">
+            <ClientManagement />
+          </TabsContent>
+          <TabsContent value="files">
+            <FileManagement />
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
+}

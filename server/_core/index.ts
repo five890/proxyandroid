@@ -8,6 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import cookieParser from "cookie-parser";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -28,12 +29,70 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+async function seedDefaultAdmin() {
+  try {
+    const mysql = await import("mysql2/promise");
+    const connection = await mysql.createConnection(process.env.DATABASE_URL || "");
+
+    // Check if admin already exists
+    const [existing] = await connection.query(
+      "SELECT id FROM client_credentials WHERE username = ? AND role = 'admin' LIMIT 1",
+      ["admin"]
+    );
+
+    if ((existing as any[]).length > 0) {
+      console.log("[Seed] Admin account already exists.");
+      await connection.end();
+      return;
+    }
+
+    // Use require for CJS module in dev
+    const authUtils = require("../auth-utils");
+    const { hashPassword } = authUtils;
+    const { hash } = hashPassword("admin123");
+
+    await connection.query(
+      `INSERT INTO client_credentials (username, passwordHash, active, credits, role) VALUES (?, ?, true, 0, 'admin')`,
+      ["admin", hash]
+    );
+
+    console.log("[Seed] Default admin created: admin / admin123");
+    console.log("[Seed] ⚠️  CHANGE PASSWORD immediately after first login!");
+
+    await connection.end();
+  } catch (err: any) {
+    console.warn("[Seed] Failed to seed admin:", err?.message || "Unknown error");
+  }
+}
+
 async function startServer() {
   const app = express();
   const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use(cookieParser());
+
+  // Security headers: block screen capture, disable devtools, prevent caching
+  app.use((req, res, next) => {
+    // Block screen capture and screen sharing
+    res.setHeader("Permissions-Policy", "display-capture=(), screen-wake-lock=()");
+    // Prevent content from being embedded in iframes
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    // Prevent MIME type sniffing
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    // Content Security Policy
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: /manus-storage/; connect-src 'self'"
+    );
+    // Prevent caching of sensitive pages
+    if (req.path.includes("/dashboard") || req.path.includes("/admin") || req.path.includes("/login")) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      res.setHeader("Pragma", "no-cache");
+    }
+    next();
+  });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // tRPC API
@@ -63,4 +122,4 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+seedDefaultAdmin().then(() => startServer()).catch(console.error);

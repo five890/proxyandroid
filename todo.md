@@ -1,0 +1,21 @@
+# Portal de Acesso - TODO
+
+- [x] Autenticação própria (sem OAuth) - Login/senha criados pelo admin
+- [x] Bloqueio por dispositivo - Fingerprint do navegador + IP no primeiro acesso
+- [x] Área do cliente - Download de arquivos de instalação
+- [x] Sistema de créditos - Gerenciado pelo admin (adicionar/remover/zerar)
+- [x] Painel administrativo - CRUD de logins
+- [x] Painel administrativo - Adicionar/remover créditos
+- [x] Painel administrativo - Ativar/desativar logins
+- [x] Painel administrativo - Resetar dispositivo vinculado
+- [x] Design elegante e refinado (dark theme, visual sofisticado)
+- [x] Testes vitest
+- [x] Implementar login próprio para admin (sem OAuth) na página de login
+- [x] Proteger clientFiles.files com validação de sessão do cliente no backend
+- [x] Aplicar política Permissions-Policy no servidor via headers HTTP
+- [x] Validar IP junto com fingerprint no bloqueio de dispositivo
+- [x] Ajustar roteamento para admin acessar painel sem OAuth
+- [x] Revisar visual do painel admin/dashboard completo
+- [x] Criar admin padrão via seed (primeiro acesso)
+- [x] Validar visualmente /admin e /dashboard com screenshots
+- [x] Atualizar testes para incluir adminLogin

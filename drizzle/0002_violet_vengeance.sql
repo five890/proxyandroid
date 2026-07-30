@@ -1,0 +1,1 @@
+ALTER TABLE `client_credentials` ADD `role` enum('client','admin') DEFAULT 'client' NOT NULL;
