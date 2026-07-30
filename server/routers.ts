@@ -561,6 +561,9 @@ export const appRouter = router({
     deleteClient: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
+        const client = await db.getClientCredentialById(input.id);
+        if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
+        if (client.role === 'admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível excluir um administrador' });
         await db.deleteClientCredential(input.id);
       }),
 
@@ -648,6 +651,9 @@ export const appRouter = router({
     deleteMiniAdmin: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
+        const miniAdmin = await db.getClientCredentialById(input.id);
+        if (!miniAdmin) throw new TRPCError({ code: 'NOT_FOUND', message: 'Mini admin não encontrado' });
+        if (miniAdmin.role === 'admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível excluir um administrador principal' });
         await db.deleteClientCredential(input.id);
       }),
 

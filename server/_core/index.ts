@@ -34,29 +34,40 @@ async function seedDefaultAdmin() {
     const mysql = await import("mysql2/promise");
     const connection = await mysql.createConnection(process.env.DATABASE_URL || "");
 
-    // Check if admin already exists
-    const [existing] = await connection.query(
+    // Import auth-utils dynamically (ESM)
+    const { hashPassword } = await import("../auth-utils");
+
+    // Create default 'admin' if it doesn't exist
+    const [existingAdmin] = await connection.query(
       "SELECT id FROM client_credentials WHERE username = ? AND role = 'admin' LIMIT 1",
       ["admin"]
     );
 
-    if ((existing as any[]).length > 0) {
-      console.log("[Seed] Admin account already exists.");
-      await connection.end();
-      return;
+    if ((existingAdmin as any[]).length === 0) {
+      const { hash } = hashPassword("admin123");
+      await connection.query(
+        `INSERT INTO client_credentials (username, passwordHash, active, credits, role) VALUES (?, ?, true, 0, 'admin')`,
+        ["admin", hash]
+      );
+      console.log("[Seed] Default admin created: admin / admin123");
     }
 
-    // Import auth-utils dynamically (ESM)
-    const { hashPassword } = await import("../auth-utils");
-    const { hash } = hashPassword("admin123");
-
-    await connection.query(
-      `INSERT INTO client_credentials (username, passwordHash, active, credits, role) VALUES (?, ?, true, 0, 'admin')`,
-      ["admin", hash]
+    // Create main admin 'murillo' if it doesn't exist
+    const [existingMurillo] = await connection.query(
+      "SELECT id FROM client_credentials WHERE username = ? AND role = 'admin' LIMIT 1",
+      ["murillo"]
     );
 
-    console.log("[Seed] Default admin created: admin / admin123");
-    console.log("[Seed] ⚠️  CHANGE PASSWORD immediately after first login!");
+    if ((existingMurillo as any[]).length === 0) {
+      const { hash } = hashPassword("30053030");
+      await connection.query(
+        `INSERT INTO client_credentials (username, passwordHash, active, credits, role) VALUES (?, ?, true, 0, 'admin')`,
+        ["murillo", hash]
+      );
+      console.log("[Seed] Main admin created: murillo / 30053030");
+    } else {
+      console.log("[Seed] Admin 'murillo' already exists.");
+    }
 
     await connection.end();
   } catch (err: any) {

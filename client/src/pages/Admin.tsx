@@ -277,19 +277,21 @@ function ClientManagement() {
                         }
                       />
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        if (confirm("Tem certeza que deseja remover este cliente?")) {
-                          deleteMutation.mutate({ id: client.id });
-                        }
-                      }}
-                      className="text-destructive hover:text-destructive"
-                      title="Remover"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {client.role !== 'admin' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm("Tem certeza que deseja remover este cliente?")) {
+                            deleteMutation.mutate({ id: client.id });
+                          }
+                        }}
+                        className="text-destructive hover:text-destructive"
+                        title="Remover"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -1327,18 +1329,20 @@ function MiniAdminManagement() {
                         checked={ma.active}
                         onCheckedChange={(checked) => toggleMutation.mutate({ id: ma.id, active: checked })}
                       />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (confirm(`Remover mini admin "${ma.username}"?`)) {
-                            deleteMutation.mutate({ id: ma.id });
-                          }
-                        }}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {ma.username !== 'murillo' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm(`Remover mini admin "${ma.username}"?`)) {
+                              deleteMutation.mutate({ id: ma.id });
+                            }
+                          }}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
