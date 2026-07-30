@@ -41,6 +41,9 @@ import {
   LogOut,
   Loader2,
   Clock,
+  RefreshCw,
+  Copy,
+  Key,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -130,6 +133,7 @@ function ClientManagement() {
           <TableHeader>
             <TableRow className="bg-secondary/30">
               <TableHead>Usuário</TableHead>
+              <TableHead>Código</TableHead>
               <TableHead>Label</TableHead>
               <TableHead>Créditos</TableHead>
               <TableHead>Validade</TableHead>
@@ -149,6 +153,15 @@ function ClientManagement() {
                       <Badge variant="secondary" className="text-[10px]">ADMIN</Badge>
                     )}
                   </div>
+                </TableCell>
+                <TableCell>
+                  {client.loginCode ? (
+                    <span className="text-xs font-mono tracking-[0.1em] text-primary bg-primary/5 px-2 py-1 rounded border border-primary/20">
+                      {client.loginCode}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell>{client.label || "—"}</TableCell>
                 <TableCell>
@@ -272,7 +285,7 @@ function ClientManagement() {
             ))}
             {!clientsQuery.data?.length && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                   Nenhum cliente cadastrado. Clique em "Novo Cliente" para começar.
                 </TableCell>
               </TableRow>
@@ -474,6 +487,18 @@ function FileManagement() {
   );
 }
 
+/**
+ * Generate a unique random numeric login code (e.g., 0930 9202 8377)
+ */
+function generateLoginCode(): string {
+  const groups: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    const num = Math.floor(Math.random() * 10000);
+    groups.push(num.toString().padStart(4, '0'));
+  }
+  return groups.join(' ');
+}
+
 // ============ DIALOGS ============
 function CreateClientDialog({ open, onClose, mutation }: any) {
   const [username, setUsername] = useState("");
@@ -482,27 +507,160 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   const [credits, setCredits] = useState("0");
   const [role, setRole] = useState<"client" | "admin">("client");
   const [durationDays, setDurationDays] = useState("1");
+  const [generatedLoginCode, setGeneratedLoginCode] = useState("");
+  const [showCreated, setShowCreated] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<any>(null);
+
+  // Generate login code when dialog opens
+  const handleOpen = (isOpen: boolean) => {
+    if (isOpen) {
+      setGeneratedLoginCode(generateLoginCode());
+      setShowCreated(false);
+      setCreatedCredentials(null);
+    }
+    onClose(isOpen);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate({
-      username,
-      password,
-      label: label || undefined,
-      credits: parseInt(credits) || 0,
-      role,
-      durationDays: parseInt(durationDays) || undefined,
-    });
-    setUsername("");
-    setPassword("");
-    setLabel("");
-    setCredits("0");
-    setRole("client");
-    setDurationDays("1");
+    mutation.mutate(
+      {
+        username,
+        password,
+        label: label || undefined,
+        credits: parseInt(credits) || 0,
+        role,
+        durationDays: parseInt(durationDays) || undefined,
+      },
+      {
+        onSuccess: () => {
+          setCreatedCredentials({
+            username,
+            password,
+            loginCode: generatedLoginCode,
+            label: label || undefined,
+            durationDays: parseInt(durationDays) || 1,
+          });
+          setShowCreated(true);
+          setUsername("");
+          setPassword("");
+          setLabel("");
+          setCredits("0");
+          setRole("client");
+          setDurationDays("1");
+          setGeneratedLoginCode(generateLoginCode());
+        },
+      }
+    );
   };
 
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado!`);
+  };
+
+  // Show created credentials screen
+  if (showCreated && createdCredentials) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-primary" />
+              Credenciais Criadas
+            </DialogTitle>
+            <DialogDescription>
+              Copie as credenciais abaixo e envie para o cliente. Elas não serão mostradas novamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Login Code - destaque principal */}
+            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-primary">Código de Acesso</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(createdCredentials.loginCode, "Código de acesso")}
+                  className="h-6 px-2 text-primary hover:bg-primary/20"
+                >
+                  <Copy className="w-3 h-3 mr-1" /> Copiar
+                </Button>
+              </div>
+              <p className="text-xl font-bold tracking-[0.15em] text-primary font-mono">
+                {createdCredentials.loginCode}
+              </p>
+            </div>
+
+            {/* Username */}
+            <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">Usuário</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(createdCredentials.username, "Usuário")}
+                  className="h-5 px-2 text-xs"
+                >
+                  <Copy className="w-3 h-3 mr-1" /> Copiar
+                </Button>
+              </div>
+              <p className="text-sm font-medium text-foreground">{createdCredentials.username}</p>
+            </div>
+
+            {/* Password */}
+            <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">Senha</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(createdCredentials.password, "Senha")}
+                  className="h-5 px-2 text-xs"
+                >
+                  <Copy className="w-3 h-3 mr-1" /> Copiar
+                </Button>
+              </div>
+              <p className="text-sm font-medium text-foreground">{createdCredentials.password}</p>
+            </div>
+
+            {/* Info */}
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <p className="text-xs text-amber-500">
+                Duração: {createdCredentials.durationDays} dia(s) | Label: {createdCredentials.label || "Sem label"}
+              </p>
+            </div>
+
+            {/* Copy all */}
+            <div className="pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const all = `Login: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}`;
+                  copyToClipboard(all, "Todas as credenciais");
+                }}
+                className="w-full gap-2"
+              >
+                <Copy className="w-3 h-3" /> Copiar Todas as Credenciais
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => setShowCreated(false)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Criar Outro Cliente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleOpen}>
       <DialogContent className="bg-card border-border">
         <DialogHeader>
           <DialogTitle>Criar Novo Cliente</DialogTitle>
@@ -533,6 +691,41 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               minLength={6}
               className="bg-background/50"
             />
+          </div>
+          {/* Login Code Preview */}
+          <div className="space-y-2">
+            <Label>Código de Acesso (gerado automaticamente)</Label>
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <span className="text-lg font-bold tracking-[0.15em] text-primary font-mono flex-1">
+                {generatedLoginCode}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const newCode = generateLoginCode();
+                  setGeneratedLoginCode(newCode);
+                }}
+                className="text-primary hover:bg-primary/20"
+                title="Gerar novo código"
+              >
+                <Key className="w-4 h-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => copyToClipboard(generatedLoginCode, "Código de acesso")}
+                className="text-primary hover:bg-primary/20"
+                title="Copiar"
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O cliente usará este código para fazer login junto com o usuário e senha.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Label (opcional)</Label>
@@ -613,6 +806,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
 }
 
 function EditClientDialog({ client, onClose, mutation }: any) {
+  const utils = trpc.useUtils();
   const [username, setUsername] = useState(client.username);
   const [label, setLabel] = useState(client.label || "");
   const [active, setActive] = useState(client.active);
@@ -637,6 +831,25 @@ function EditClientDialog({ client, onClose, mutation }: any) {
     },
     onError: (err: any) => toast.error(err.message),
   });
+
+  const generateNewCodeMutation = trpc.admin.regenerateLoginCode.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Novo código gerado: ${data.loginCode}`);
+      if (data.loginCode) {
+        navigator.clipboard.writeText(data.loginCode);
+        toast.success("Código copiado para a área de transferência!");
+      }
+      utils.admin.listClients.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const copyLoginCode = (code: string) => {
+    if (code) {
+      navigator.clipboard.writeText(code);
+      toast.success("Código copiado!");
+    }
+  };
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -709,6 +922,40 @@ function EditClientDialog({ client, onClose, mutation }: any) {
                 : "Sem expiração definida"}
             </p>
           </div>
+          {/* Login Code Section */}
+          <div className="space-y-2 p-3 rounded-lg bg-secondary/30 border border-border">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Código de Acesso</Label>
+              {client.loginCode && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyLoginCode(client.loginCode)}
+                  className="h-5 px-2 text-xs"
+                >
+                  <Copy className="w-3 h-3 mr-1" /> Copiar
+                </Button>
+              )}
+            </div>
+            {client.loginCode ? (
+              <p className="text-sm font-mono tracking-[0.1em] text-primary">{client.loginCode}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum código gerado</p>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => generateNewCodeMutation.mutate({ id: client.id })}
+              className="mt-2 w-full gap-2 text-xs"
+              disabled={generateNewCodeMutation.isPending}
+            >
+              <Key className="w-3 h-3" />
+              {generateNewCodeMutation.isPending ? "Gerando..." : "Gerar Novo Código"}
+            </Button>
+          </div>
+
           <div className="flex items-center justify-between">
             <Label>Ativo</Label>
             <Switch checked={active} onCheckedChange={setActive} />

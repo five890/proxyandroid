@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "./db";
-import { hashPassword, verifyPassword, hashFingerprint } from "./auth-utils";
+import { hashPassword, verifyPassword, hashFingerprint, generateLoginCode } from "./auth-utils";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
 // Client session middleware - validates client_session cookie
@@ -76,9 +76,14 @@ export const appRouter = router({
         username: z.string().min(1),
         password: z.string().min(1),
         deviceFingerprint: z.string().min(1),
+        loginCode: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const credential = await db.getClientCredentialByUsername(input.username);
+        // Try to find credential by username first, then by loginCode
+        let credential = await db.getClientCredentialByUsername(input.username);
+        if (!credential && input.loginCode) {
+          credential = await db.getClientCredentialByLoginCode(input.loginCode);
+        }
         if (!credential) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas' });
         }
@@ -118,6 +123,7 @@ export const appRouter = router({
           username: credential.username,
           credits: credential.credits,
           label: credential.label,
+          loginCode: credential.loginCode,
           expiresAt: Date.now() + 24 * 60 * 60 * 1000,
         });
 
@@ -135,6 +141,7 @@ export const appRouter = router({
             username: credential.username,
             credits: credential.credits,
             label: credential.label,
+            loginCode: credential.loginCode,
           }
         };
       }),
@@ -169,6 +176,7 @@ export const appRouter = router({
           username: credential.username,
           credits: credential.credits,
           label: credential.label || null,
+          loginCode: credential.loginCode || null,
           expiresAt: credential.expiresAt ? credential.expiresAt.toISOString() : null,
           durationDays: credential.durationDays,
         };
@@ -301,6 +309,7 @@ export const appRouter = router({
         deviceLockedAt: c.deviceLockedAt,
         lastLoginAt: c.lastLoginAt,
         createdAt: c.createdAt,
+        loginCode: c.loginCode,
       }));
     }),
 
@@ -322,6 +331,8 @@ export const appRouter = router({
         const expiresAt = input.durationDays
           ? new Date(Date.now() + input.durationDays * 24 * 60 * 60 * 1000)
           : null;
+        // Generate unique login code (e.g., 0930 9202 8377)
+        const loginCode = generateLoginCode();
         await db.createClientCredential({
           username: input.username,
           passwordHash: hash,
@@ -331,6 +342,7 @@ export const appRouter = router({
           role: input.role || 'client',
           durationDays: input.durationDays || null,
           expiresAt: expiresAt,
+          loginCode,
         });
       }),
 
@@ -367,6 +379,14 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const { hash } = hashPassword(input.password);
         await db.updateClientCredential(input.id, { passwordHash: hash });
+      }),
+
+    regenerateLoginCode: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const loginCode = generateLoginCode();
+        await db.updateClientCredential(input.id, { loginCode });
+        return { loginCode };
       }),
 
     toggleClientActive: adminProcedure

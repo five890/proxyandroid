@@ -35,6 +35,7 @@ export const clientCredentials = mysqlTable("client_credentials", {
   deviceIP: varchar("deviceIP", { length: 64 }),
   deviceLockedAt: timestamp("deviceLockedAt"),
   label: text("label"),
+  loginCode: varchar("loginCode", { length: 32 }),
   role: mysqlEnum("role", ["client", "admin"]).default("client").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

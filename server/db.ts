@@ -112,6 +112,13 @@ export async function getClientCredentialByUsername(username: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getClientCredentialByLoginCode(loginCode: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(clientCredentials).where(eq(clientCredentials.loginCode, loginCode)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function createClientCredential(data: Omit<InsertClientCredential, 'id' | 'createdAt' | 'updatedAt' | 'lastLoginAt'>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

@@ -1,0 +1,1 @@
+ALTER TABLE `client_credentials` ADD `loginCode` varchar(32);

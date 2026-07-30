@@ -32,3 +32,16 @@ export function generateToken(): string {
 export function hashFingerprint(components: string[]): string {
   return createHash('sha256').update(components.join('|')).digest('hex');
 }
+
+/**
+ * Generate a unique random numeric login code (e.g., 0930 9202 8377)
+ * Format: 4 groups of 4 digits separated by spaces (16 digits total)
+ */
+export function generateLoginCode(): string {
+  const groups: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    const num = Math.floor(Math.random() * 10000);
+    groups.push(num.toString().padStart(4, '0'));
+  }
+  return groups.join(' ');
+}

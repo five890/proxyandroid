@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Lock, User, Eye, EyeOff, Monitor } from "lucide-react";
+import { Shield, Lock, User, Eye, EyeOff, Monitor, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -29,6 +29,7 @@ function generateDeviceFingerprint(): string {
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loginCode, setLoginCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
@@ -60,6 +61,7 @@ export default function Login() {
       username,
       password,
       deviceFingerprint: generateDeviceFingerprint(),
+      loginCode: loginCode || undefined,
     });
   };
 
@@ -129,6 +131,25 @@ export default function Login() {
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
+              </div>
+            </div>
+
+            {/* Código de Acesso */}
+            <div className="space-y-2">
+              <Label htmlFor="login-code" className="text-sm font-medium text-foreground/80">
+                Código de Acesso (opcional)
+              </Label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="login-code"
+                  type="text"
+                  placeholder="0930 9202 8377"
+                  value={loginCode}
+                  onChange={(e) => setLoginCode(e.target.value)}
+                  className="pl-10 h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 tracking-wider font-mono"
+                  disabled={loading}
+                />
               </div>
             </div>
 

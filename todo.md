@@ -28,3 +28,4 @@
 - [x] Quando login expirar, mostrar mensagem clara: "Seu login expirou, compre outro acesso"
 - [x] Página de expiração separada no lado do cliente com design elegante
 - [x] Garantir que ao tentar acessar com login expirado, redirecione para tela de expiração
+- [x] Gerar login automaticamente com nome do usuário + número aleatório (ex.: 0930 9202 8377) no painel admin
