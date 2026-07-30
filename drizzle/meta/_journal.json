@@ -50,6 +50,20 @@
       "when": 1785443951391,
       "tag": "0006_breezy_anthem",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1785444449611,
+      "tag": "0007_magical_stone_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1785445100048,
+      "tag": "0008_stiff_falcon",
+      "breakpoints": true
     }
   ]
 }

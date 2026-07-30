@@ -15,6 +15,9 @@ import {
   AlertTriangle,
   Loader2,
   Clock,
+  Key,
+  CheckCircle2,
+  Server,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/lib/utils";
@@ -25,13 +28,12 @@ export default function Dashboard() {
 
   // Check client session - always fresh from DB
   const clientMeQuery = trpc.auth.clientMe.useQuery(undefined, {
-    refetchInterval: 30000, // Refresh every 30s to catch credit changes
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
   });
 
-  // Check for expired session from tRPC error
   const clientMeError = clientMeQuery.error as any;
-  const isExpiredError = clientMeError?.data?.code === "FORBIDDEN" && 
+  const isExpiredError = clientMeError?.data?.code === "FORBIDDEN" &&
     (clientMeError?.message?.includes("expirou") || clientMeError?.message?.includes("Expirou"));
 
   useEffect(() => {
@@ -47,13 +49,14 @@ export default function Dashboard() {
     }
   }, [clientMeQuery.data, clientMeQuery.isLoading, isExpiredError]);
 
-  // Fetch files
-  const filesQuery = trpc.clientFiles.files.useQuery();
+  // Fetch files - only when account is activated
+  const filesQuery = trpc.clientFiles.files.useQuery(undefined, {
+    enabled: clientMeQuery.data?.activated === true,
+  });
 
-  // Check for expired error from files query
   const filesError = filesQuery.error as any;
   useEffect(() => {
-    if (filesError?.data?.code === "FORBIDDEN" && 
+    if (filesError?.data?.code === "FORBIDDEN" &&
         (filesError?.message?.includes("expirou") || filesError?.message?.includes("Expirou"))) {
       sessionStorage.setItem("login_expired", "true");
       setLocation("/expired");
@@ -67,7 +70,19 @@ export default function Dashboard() {
     },
   });
 
-  // Download handler - always validates credits from server
+  // Activate account mutation
+  const activateMutation = trpc.auth.activateAccount.useMutation({
+    onSuccess: () => {
+      toast.success("Conta ativada com sucesso! Seus arquivos agora estão disponíveis.");
+      utils.auth.clientMe.invalidate();
+      utils.clientFiles.files.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Erro ao ativar conta");
+    },
+  });
+
+  // Download handler
   const downloadMutation = trpc.clientFiles.downloadFile.useMutation({
     onSuccess: (data) => {
       const link = document.createElement("a");
@@ -75,7 +90,6 @@ export default function Dashboard() {
       link.download = data.originalName;
       link.click();
       toast.success(`Download iniciado: ${data.originalName}`);
-      // Refresh session data after download
       utils.auth.clientMe.invalidate();
     },
     onError: (error) => {
@@ -89,6 +103,10 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     logoutMutation.mutate();
+  };
+
+  const handleActivate = () => {
+    activateMutation.mutate();
   };
 
   const session = clientMeQuery.data;
@@ -106,6 +124,117 @@ export default function Dashboard() {
 
   if (!session) return null;
 
+  // ============ ACTIVATION SCREEN ============
+  if (!session.activated) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="glass sticky top-0 z-50 border-b border-border/50">
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-sm font-semibold text-foreground">Portal de Acesso</h1>
+                <p className="text-xs text-muted-foreground">{session.username}</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-foreground gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
+        </header>
+
+        <main className="max-w-2xl mx-auto px-6 py-12">
+          {/* Activation Card */}
+          <Card className="p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+              <Key className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              Ativar Seu Acesso
+            </h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Você possui <span className="font-semibold text-primary">{session.credits} crédito(s)</span> disponível(is). 
+              Use seu crédito para ativar o acesso e liberar os arquivos de download.
+            </p>
+
+            {/* Warning */}
+            <div className="mb-6 flex items-start gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-left">
+              <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-destructive">AVISO IMPORTANTE</p>
+                <p className="text-xs text-muted-foreground">
+                  Caso compartilhe tua key com outras pessoas, sua conta será banida no Free Fire.
+                  Autorize o IP com a key em: {session.activationUrl ? (
+                    <a href={session.activationUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">{session.activationUrl}</a>
+                  ) : (
+                    <span className="text-foreground font-medium">https://freefireproxy.com.br/ativar/</span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Server Info */}
+            <Card className="p-4 mb-6 bg-primary/5 border border-primary/10 text-left">
+              <div className="flex items-center gap-2 mb-3">
+                <Server className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Servidores</span>
+              </div>
+              <div className="space-y-1.5 text-xs font-mono text-muted-foreground">
+                <p>IP: <span className="text-foreground">2.24.121.175</span></p>
+                <p>Porta: <span className="text-foreground">9999</span> - Hs Pecoço</p>
+                <p>Porta: <span className="text-foreground">9997</span> - Hs Peito</p>
+                <p>Porta: <span className="text-foreground">9998</span> - Hs Alto</p>
+              </div>
+            </Card>
+
+            {/* Credits */}
+            <div className="flex items-center justify-center gap-2 mb-6 px-4 py-3 rounded-lg bg-primary/5 border border-primary/10">
+              <CreditCard className="w-4 h-4 text-primary" />
+              <span className="text-sm text-muted-foreground">Créditos disponíveis:</span>
+              <Badge variant="default" className="bg-primary text-primary-foreground">{session.credits}</Badge>
+            </div>
+
+            {/* Activate Button */}
+            <Button
+              size="lg"
+              onClick={handleActivate}
+              disabled={activateMutation.isPending || session.credits < 1}
+              className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              {activateMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Ativando...
+                </>
+              ) : (
+                <>
+                  <Key className="w-4 h-4" />
+                  Ativar Acesso (1 crédito)
+                </>
+              )}
+            </Button>
+
+            {session.credits < 1 && (
+              <p className="text-xs text-destructive mt-3">
+                Você não possui créditos suficientes. Entre em contato com o administrador.
+              </p>
+            )}
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // ============ ACTIVATED - FILES DASHBOARD ============
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -121,6 +250,10 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+              <span className="text-xs text-emerald-500 font-medium">Ativado</span>
+            </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10">
               <CreditCard className="w-3 h-3 text-primary" />
               <span className="text-sm font-medium text-primary">{session.credits}</span>
@@ -158,6 +291,33 @@ export default function Dashboard() {
             Seus arquivos de instalação estão disponíveis abaixo.
           </p>
         </div>
+
+        {/* Server Info + Activation URL Card */}
+        <Card className="p-5 mb-6 bg-primary/5 border border-primary/10">
+          <div className="flex items-center gap-2 mb-3">
+            <Server className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">Informações do Servidor</span>
+          </div>
+          <div className="space-y-1 text-xs font-mono text-muted-foreground mb-4">
+            <p>IP: <span className="text-foreground font-semibold">2.24.121.175</span></p>
+            <p>Porta: <span className="text-foreground font-semibold">9999</span> - Hs Pecoço</p>
+            <p>Porta: <span className="text-foreground font-semibold">9997</span> - Hs Peito</p>
+            <p>Porta: <span className="text-foreground font-semibold">9998</span> - Hs Alto</p>
+          </div>
+          {session.activationUrl && (
+            <div className="pt-4 border-t border-primary/10">
+              <p className="text-xs text-muted-foreground mb-1">Link de ativação:</p>
+              <a
+                href={session.activationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline font-medium"
+              >
+                {session.activationUrl}
+              </a>
+            </div>
+          )}
+        </Card>
 
         {/* Expiration Warning */}
         {session.expiresAt && new Date(session.expiresAt) < new Date(Date.now() + 24 * 60 * 60 * 1000) && (

@@ -41,3 +41,13 @@
 - [x] Restringir listMyClients para mostrar apenas clientes criados pelo mini admin (filtragem por createdByMiniAdminId)
 - [x] Criar painel frontend MiniAdmin (com restrição de visualização)
 - [x] Adicionar aba Mini Admins no painel do admin principal
+- [x] Sistema de ativação por key: admin cadastra key/certificado no painel
+- [x] Ao criar usuário, ganhar 1 crédito automaticamente
+- [x] Cliente usa crédito para ativar e liberar arquivos de download
+- [x] Exibir informações de servidor (IP, portas) após ativação
+- [x] Aviso de não compartilhar key com outras pessoas
+- [x] Admin configura URL de key/ativação (ex: freefireproxy.com.br/ativar/) no painel
+- [x] URL da key aparece no painel do cliente após ativação com link clicável
+- [x] URL da key aparece na tela de ativação antes do cliente ativar
+- [x] Bloquear clientFiles.files e clientFiles.downloadFile quando activated === false
+- [x] No frontend, só consultar arquivos após ativação

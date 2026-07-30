@@ -27,6 +27,7 @@ vi.mock("./db", () => ({
   getAllClientCredentials: vi.fn(),
   listFiles: vi.fn(),
   getAdminCredential: vi.fn(),
+  getSiteSetting: vi.fn(),
 }));
 
 import * as db from "./db";

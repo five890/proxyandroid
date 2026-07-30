@@ -193,6 +193,8 @@ export const appRouter = router({
           await db.updateClientCredentialActive(credential.id, false);
           return null;
         }
+        // Get activation URL from settings
+        const activationSetting = await db.getSiteSetting('activation_url');
         return {
           id: credential.id,
           username: credential.username,
@@ -201,10 +203,41 @@ export const appRouter = router({
           loginCode: credential.loginCode || null,
           expiresAt: credential.expiresAt ? credential.expiresAt.toISOString() : null,
           durationDays: credential.durationDays,
+          activated: credential.activated || false,
+          activationUrl: activationSetting?.value || null,
         };
       } catch {
         return null;
       }
+    }),
+
+    // Activate account using credit - client uses their credit to activate
+    activateAccount: clientSessionProcedure.mutation(async ({ ctx }) => {
+      const credential = await db.getClientCredentialById(ctx.clientSession.credentialId);
+      if (!credential) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Conta não encontrada' });
+      }
+      if (credential.activated) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Esta conta já está ativada' });
+      }
+      if (credential.credits < 1) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Você precisa de pelo menos 1 crédito para ativar sua conta' });
+      }
+
+      // Activate the account
+      await db.updateClientCredential(credential.id, {
+        activated: true,
+        credits: credential.credits - 1,
+      });
+
+      // Record credit transaction
+      await db.createCreditTransaction({
+        credentialId: credential.id,
+        amount: -1,
+        reason: 'Ativação de conta - Key utilizada',
+      });
+
+      return { success: true, remainingCredits: credential.credits - 1 };
     }),
 
     // ============ ADMIN AUTH ============
@@ -292,6 +325,18 @@ export const appRouter = router({
   // ============ CLIENT PROCEDURES (protected by session) ============
   clientFiles: router({
     files: clientSessionProcedure.query(async ({ ctx }) => {
+      // Check activation status
+      const credential = await db.getClientCredentialById(ctx.clientSession.credentialId);
+      if (!credential) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta não encontrada.' });
+      }
+      if (!credential.activated) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta não ativada. Use seu crédito para ativar o acesso primeiro.' });
+      }
+      if (credential.credits <= 0) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem créditos suficientes para acessar os arquivos.' });
+      }
+
       const allFiles = await db.getAllFiles();
       return allFiles.map(f => ({
         id: f.id,
@@ -307,9 +352,15 @@ export const appRouter = router({
     downloadFile: clientSessionProcedure
       .input(z.object({ fileId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        // Check credits from DB (not session cookie) to prevent bypass
+        // Check activation and credits from DB to prevent bypass
         const credential = await db.getClientCredentialById(ctx.clientSession.credentialId);
-        if (!credential || credential.credits <= 0) {
+        if (!credential) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta não encontrada.' });
+        }
+        if (!credential.activated) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta não ativada. Use seu crédito para ativar o acesso primeiro.' });
+        }
+        if (credential.credits <= 0) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem créditos suficientes para download.' });
         }
 
@@ -335,8 +386,26 @@ export const appRouter = router({
       }),
   }),
 
-  // ============ ADMIN PROCEDURES ============
+    // ============ ADMIN PROCEDURES ============
   admin: router({
+    // Settings CRUD
+    getSettings: adminProcedure.query(async () => {
+      const settings = await db.getAllSiteSettings();
+      const map: Record<string, string> = {};
+      settings.forEach(s => { map[s.key] = s.value || ''; });
+      return map;
+    }),
+
+    updateSettings: adminProcedure
+      .input(z.object({
+        activationUrl: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        if (input.activationUrl !== undefined) {
+          await db.setSiteSetting('activation_url', input.activationUrl);
+        }
+        return { success: true };
+      }),
     // Clients CRUD
     listClients: adminProcedure.query(async () => {
       const clients = await db.getAllClientCredentials();
@@ -382,12 +451,13 @@ export const appRouter = router({
           username: input.username,
           passwordHash: hash,
           label: input.label || null,
-          credits: input.credits || 0,
+          credits: 1, // 1 crédito para ativação
           active: true,
           role: input.role || 'client',
           durationDays: input.durationDays || null,
           expiresAt: expiresAt,
           loginCode,
+          activated: false,
         });
       }),
 
@@ -603,13 +673,14 @@ export const appRouter = router({
           username: input.username,
           passwordHash: hash,
           active: true,
-          credits: input.credits || 0,
+          credits: 1, // 1 crédito para ativação
           durationDays: 1,
           expiresAt,
           label: input.label || null,
           loginCode,
           role: 'client',
           createdByMiniAdminId: ctx.adminSession.id,
+          activated: false,
         });
 
         return {

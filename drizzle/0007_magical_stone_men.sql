@@ -1,0 +1,1 @@
+ALTER TABLE `client_credentials` ADD `activated` boolean DEFAULT false NOT NULL;
