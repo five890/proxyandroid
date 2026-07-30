@@ -63,4 +63,6 @@
 - [x] Mostrar código de acesso e IP na tabela do Mini Admin (senha é mostrada apenas no momento da criação)
 - [x] Adicionar admin principal fixo (murillo / 30053030) no seed e proteger contra exclusão
 - [x] Corrigir: Mini Admin não deve ver outros admins na tabela - redireciona admins para /admin e filtra apenas role='client'
-- [ ] Corrigir bug de expiração: quando define 1 dia aparece 2 dias no painel do Mini Admin
+- [x] Corrigir bug de expiração: trocar Math.ceil por Math.floor no cálculo de dias restantes
+- [ ] Proteger admin 'murillo' contra edição - nenhum outro admin pode modificar suas credenciais
+- [ ] Exibir 'murillo' como 'Proprietário' no painel admin (em vez de 'Admin')

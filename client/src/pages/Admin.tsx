@@ -151,7 +151,10 @@ function ClientManagement() {
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     {client.username}
-                    {client.role === 'admin' && (
+                    {client.username === 'murillo' && (
+                      <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">PROPRIETÁRIO</Badge>
+                    )}
+                    {client.role === 'admin' && client.username !== 'murillo' && (
                       <Badge variant="secondary" className="text-[10px]">ADMIN</Badge>
                     )}
                   </div>
@@ -235,15 +238,22 @@ function ClientManagement() {
                   </span>
                 </TableCell>
                 <TableCell>
+                  {client.username === 'murillo' ? (
+                    <div className="flex items-center justify-end">
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">PROTEGIDO</Badge>
+                    </div>
+                  ) : (
                   <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEditingClient(client)}
-                      title="Editar"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
+                    {client.role !== 'admin' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditingClient(client)}
+                        title="Editar"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -293,6 +303,7 @@ function ClientManagement() {
                       </Button>
                     )}
                   </div>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

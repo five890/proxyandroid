@@ -487,6 +487,11 @@ export const appRouter = router({
         accessKey: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
+        // Prevent editing the owner 'murillo'
+        const target = await db.getClientCredentialById(input.id);
+        if (target && target.username === 'murillo' && target.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar o proprietário do sistema' });
+        }
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing && existing.id !== input.id) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
@@ -510,6 +515,10 @@ export const appRouter = router({
         password: z.string().min(6),
       }))
       .mutation(async ({ input }) => {
+        const target = await db.getClientCredentialById(input.id);
+        if (target && target.username === 'murillo' && target.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar o proprietário do sistema' });
+        }
         const { hash } = hashPassword(input.password);
         await db.updateClientCredential(input.id, { passwordHash: hash });
       }),
@@ -517,6 +526,10 @@ export const appRouter = router({
     regenerateLoginCode: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
+        const target = await db.getClientCredentialById(input.id);
+        if (target && target.username === 'murillo' && target.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar o proprietário do sistema' });
+        }
         const loginCode = generateLoginCode();
         await db.updateClientCredential(input.id, { loginCode });
         return { loginCode };
@@ -525,6 +538,10 @@ export const appRouter = router({
     toggleClientActive: adminProcedure
       .input(z.object({ id: z.number(), active: z.boolean() }))
       .mutation(async ({ input }) => {
+        const target = await db.getClientCredentialById(input.id);
+        if (target && target.username === 'murillo' && target.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar o proprietário do sistema' });
+        }
         await db.updateClientCredentialActive(input.id, input.active);
       }),
 
