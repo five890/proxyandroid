@@ -66,6 +66,7 @@
 - [x] Corrigir bug de expiração: trocar Math.ceil por Math.floor no cálculo de dias restantes
 - [x] Proteger admin 'murillo' contra edição - nenhum outro admin pode modificar suas credenciais
 - [x] Exibir 'murillo' como 'Proprietário' no painel admin (em vez de 'Admin')
-- [ ] Esconder IP do proprietário (murillo) na tabela do admin
-- [ ] Impedir admins de criar outros admins (role só pode ser 'client')
-- [ ] Impedir admins de editar/deletar outros admins (ação disponível apenas para clients)
+- [x] Esconder IP do proprietário (murillo) na tabela do admin
+- [x] Impedir admins de criar outros admins (role só pode ser 'client')
+- [x] Impedir admins de editar/deletar outros admins (ação disponível apenas para clients)
+- [x] Backend: forçar role: 'client' no admin.createClient e bloquear edição de admins nas mutações

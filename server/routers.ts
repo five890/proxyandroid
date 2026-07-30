@@ -451,6 +451,8 @@ export const appRouter = router({
         accessKey: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
+        // Only allow creating clients, not admins
+        const role = 'client';
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
@@ -467,7 +469,7 @@ export const appRouter = router({
           label: input.label || null,
           credits: 1, // 1 crédito para ativação
           active: true,
-          role: input.role || 'client',
+          role,
           durationDays: input.durationDays || null,
           expiresAt: expiresAt,
           loginCode,
@@ -487,10 +489,10 @@ export const appRouter = router({
         accessKey: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        // Prevent editing the owner 'murillo'
+        // Prevent editing any admin account
         const target = await db.getClientCredentialById(input.id);
-        if (target && target.username === 'murillo' && target.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar o proprietário do sistema' });
+        if (target && target.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
         }
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing && existing.id !== input.id) {
@@ -516,8 +518,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const target = await db.getClientCredentialById(input.id);
-        if (target && target.username === 'murillo' && target.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar o proprietário do sistema' });
+        if (target && target.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
         }
         const { hash } = hashPassword(input.password);
         await db.updateClientCredential(input.id, { passwordHash: hash });
@@ -527,8 +529,8 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const target = await db.getClientCredentialById(input.id);
-        if (target && target.username === 'murillo' && target.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar o proprietário do sistema' });
+        if (target && target.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
         }
         const loginCode = generateLoginCode();
         await db.updateClientCredential(input.id, { loginCode });
@@ -539,8 +541,8 @@ export const appRouter = router({
       .input(z.object({ id: z.number(), active: z.boolean() }))
       .mutation(async ({ input }) => {
         const target = await db.getClientCredentialById(input.id);
-        if (target && target.username === 'murillo' && target.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar o proprietário do sistema' });
+        if (target && target.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
         }
         await db.updateClientCredentialActive(input.id, input.active);
       }),
@@ -555,6 +557,9 @@ export const appRouter = router({
         const credential = await db.getClientCredentialById(input.id);
         if (!credential) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
+        }
+        if (credential.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
         }
         const newCredits = credential.credits + input.amount;
         if (newCredits < 0) {
@@ -572,6 +577,10 @@ export const appRouter = router({
     resetClientDevice: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
+        const target = await db.getClientCredentialById(input.id);
+        if (target && target.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
+        }
         await db.resetClientDevice(input.id);
       }),
 
