@@ -198,8 +198,11 @@ export const appRouter = router({
           await db.updateClientCredentialActive(credential.id, false);
           return null;
         }
-        // Get activation URL from settings, access key from individual credential
+        // Get activation URL and global access key from settings
         const activationSetting = await db.getSiteSetting('activation_url');
+        const globalAccessKeySetting = await db.getSiteSetting('access_key');
+        // Use individual accessKey first, fall back to global access key
+        const accessKey = credential.accessKey || globalAccessKeySetting?.value || null;
         return {
           id: credential.id,
           username: credential.username,
@@ -210,7 +213,7 @@ export const appRouter = router({
           durationDays: credential.durationDays,
           activated: credential.activated || false,
           activationUrl: activationSetting?.value || null,
-          accessKey: credential.accessKey || null,
+          accessKey,
         };
       } catch {
         return null;
