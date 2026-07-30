@@ -178,7 +178,7 @@ function ClientManagement() {
                       <Clock className="w-3 h-3 text-amber-500" />
                       <span className="text-xs text-amber-500">
                         {(() => {
-                          const daysLeft = Math.ceil((new Date(client.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                          const daysLeft = Math.floor((new Date(client.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
                           if (daysLeft <= 0) return "Expirado";
                           if (daysLeft === 1) return "1 dia";
                           return `${daysLeft} dias`;
