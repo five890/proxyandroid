@@ -42,12 +42,14 @@ function CreateClientDialog({ open, onClose }: { open: boolean; onClose: () => v
   const [password, setPassword] = useState("");
   const [label, setLabel] = useState("");
   const [credits, setCredits] = useState(0);
+  const [accessKey, setAccessKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState<{
     username: string;
     password: string;
     loginCode: string;
     expiresAt: string;
+    accessKey?: string | null;
   } | null>(null);
   const utils = trpc.useUtils();
 
@@ -67,7 +69,7 @@ function CreateClientDialog({ open, onClose }: { open: boolean; onClose: () => v
     e.preventDefault();
     if (!username || !password) return;
     setLoading(true);
-    createMutation.mutate({ username, password, label: label || undefined, credits });
+    createMutation.mutate({ username, password, label: label || undefined, credits, accessKey: accessKey || undefined });
   };
 
   const handleClose = () => {
@@ -80,6 +82,7 @@ function CreateClientDialog({ open, onClose }: { open: boolean; onClose: () => v
     setPassword("");
     setLabel("");
     setCredits(0);
+    setAccessKey("");
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -143,7 +146,21 @@ function CreateClientDialog({ open, onClose }: { open: boolean; onClose: () => v
                   </button>
                 </div>
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-border/30">
+              {created.accessKey && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Chave de Acesso</span>
+                <div className="flex items-center gap-2">
+                  <code className="text-sm font-mono bg-background/50 px-2 py-0.5 rounded text-green-400">{created.accessKey}</code>
+                  <button
+                    onClick={() => copyToClipboard(created.accessKey!, "Chave de acesso")}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2 border-t border-border/30">
                 <span className="text-xs text-muted-foreground">Validade</span>
                 <Badge variant="outline" className="text-xs">
                   <Clock className="w-3 h-3 mr-1" />
@@ -216,6 +233,18 @@ function CreateClientDialog({ open, onClose }: { open: boolean; onClose: () => v
               min={0}
               className="bg-background/50"
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Chave de Acesso (Key)</Label>
+            <Input
+              value={accessKey}
+              onChange={(e) => setAccessKey(e.target.value)}
+              placeholder="Chave de acesso do cliente"
+              className="bg-background/50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Esta chave será revelada ao cliente após ativar com crédito.
+            </p>
           </div>
 
           <DialogFooter>

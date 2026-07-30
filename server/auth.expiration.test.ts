@@ -17,6 +17,7 @@ vi.mock("./db", () => ({
   setClientDevice: vi.fn(),
   deleteClientCredential: vi.fn(),
   updateLastLogin: vi.fn(),
+  updateClientIP: vi.fn(),
   getAllFiles: vi.fn(),
   getFileById: vi.fn(),
   createFileRecord: vi.fn(),
@@ -126,6 +127,7 @@ describe("Expiration protection", () => {
     });
     vi.mocked(db.setClientDevice).mockResolvedValue(undefined);
     vi.mocked(db.updateLastLogin).mockResolvedValue(undefined);
+    vi.mocked(db.updateClientIP).mockResolvedValue(undefined);
 
     const { ctx } = createMockContext();
     const caller = appRouter.createCaller(ctx);

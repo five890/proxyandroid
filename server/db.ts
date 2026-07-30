@@ -181,6 +181,12 @@ export async function updateLastLogin(id: number) {
   await db.update(clientCredentials).set({ lastLoginAt: new Date() }).where(eq(clientCredentials.id, id));
 }
 
+export async function updateClientIP(id: number, ip: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(clientCredentials).set({ deviceIP: ip }).where(eq(clientCredentials.id, id));
+}
+
 // ============ FILES ============
 
 export async function getAllFiles() {

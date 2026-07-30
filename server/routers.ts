@@ -137,6 +137,11 @@ export const appRouter = router({
           await db.setClientDevice(credential.id, currentFingerprint, clientIP);
         }
 
+        // Always update last login IP
+        const currentIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
+          ? ctx.req.headers['x-forwarded-for'][0]
+          : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';
+        await db.updateClientIP(credential.id, currentIP);
         await db.updateLastLogin(credential.id);
 
         const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -193,9 +198,8 @@ export const appRouter = router({
           await db.updateClientCredentialActive(credential.id, false);
           return null;
         }
-        // Get activation URL and access key from settings
+        // Get activation URL from settings, access key from individual credential
         const activationSetting = await db.getSiteSetting('activation_url');
-        const accessKeySetting = await db.getSiteSetting('access_key');
         return {
           id: credential.id,
           username: credential.username,
@@ -206,7 +210,7 @@ export const appRouter = router({
           durationDays: credential.durationDays,
           activated: credential.activated || false,
           activationUrl: activationSetting?.value || null,
-          accessKey: accessKeySetting?.value || null,
+          accessKey: credential.accessKey || null,
         };
       } catch {
         return null;
@@ -441,6 +445,7 @@ export const appRouter = router({
         credits: z.number().int().min(0).optional(),
         role: z.enum(['client', 'admin']).optional(),
         durationDays: z.number().int().min(1).optional(),
+        accessKey: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const existing = await db.getClientCredentialByUsername(input.username);
@@ -453,7 +458,7 @@ export const appRouter = router({
           : null;
         // Generate unique login code (e.g., 0930 9202 8377)
         const loginCode = generateLoginCode();
-        await db.createClientCredential({
+        const result = await db.createClientCredential({
           username: input.username,
           passwordHash: hash,
           label: input.label || null,
@@ -464,7 +469,9 @@ export const appRouter = router({
           expiresAt: expiresAt,
           loginCode,
           activated: false,
+          accessKey: input.accessKey || null,
         });
+        return { id: result.id, loginCode, username: input.username, accessKey: input.accessKey || null };
       }),
 
     updateClient: adminProcedure
@@ -474,6 +481,7 @@ export const appRouter = router({
         label: z.string().optional(),
         active: z.boolean(),
         durationDays: z.number().int().min(1).optional(),
+        accessKey: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const existing = await db.getClientCredentialByUsername(input.username);
@@ -489,6 +497,7 @@ export const appRouter = router({
           active: input.active,
           durationDays: input.durationDays || null,
           ...(expiresAt !== undefined ? { expiresAt } : {}),
+          ...(input.accessKey !== undefined ? { accessKey: input.accessKey || null } : {}),
         });
       }),
 
@@ -662,6 +671,7 @@ export const appRouter = router({
         password: z.string().min(6),
         label: z.string().optional(),
         credits: z.number().int().min(0).optional(),
+        accessKey: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         // Check if username already exists
@@ -687,6 +697,7 @@ export const appRouter = router({
           role: 'client',
           createdByMiniAdminId: ctx.adminSession.id,
           activated: false,
+          accessKey: input.accessKey || null,
         });
 
         return {
@@ -695,6 +706,7 @@ export const appRouter = router({
           password: input.password,
           loginCode,
           expiresAt: expiresAt.toISOString(),
+          accessKey: input.accessKey || null,
         };
       }),
 

@@ -54,3 +54,7 @@
 - [x] Campo de chave de acesso (key) no painel admin, igual ao campo de URL
 - [x] Chave de acesso aparece no painel do cliente com botão de copiar
 - [x] Chave de acesso aparece na tela de ativação com botão de copiar
+- [x] Campo de key de acesso ao criar cliente no painel admin (cada cliente tem sua key)
+- [x] Salvar key individual do cliente no banco e exibir no painel do cliente
+- [x] Mostrar IP do cliente que logou na tabela do painel admin
+- [x] Salvar IP do cliente no login e atualizar no banco

@@ -39,6 +39,7 @@ export const clientCredentials = mysqlTable("client_credentials", {
   role: mysqlEnum("role", ["client", "admin", "mini_admin"]).default("client").notNull(),
   createdByMiniAdminId: int("createdByMiniAdminId"),
   activated: boolean("activated").default(false).notNull(),
+  accessKey: text("accessKey"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastLoginAt: timestamp("lastLoginAt"),

@@ -140,6 +140,7 @@ function ClientManagement() {
               <TableHead>Validade</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Dispositivo</TableHead>
+              <TableHead>IP</TableHead>
               <TableHead>Último Acesso</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -209,6 +210,15 @@ function ClientManagement() {
                     </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">Nenhum</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {client.deviceIP ? (
+                    <span className="text-xs font-mono text-primary bg-primary/5 px-2 py-1 rounded border border-primary/20">
+                      {client.deviceIP}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -508,6 +518,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   const [credits, setCredits] = useState("0");
   const [role, setRole] = useState<"client" | "admin">("client");
   const [durationDays, setDurationDays] = useState("1");
+  const [accessKey, setAccessKey] = useState("");
   const [generatedLoginCode, setGeneratedLoginCode] = useState("");
   const [showCreated, setShowCreated] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<any>(null);
@@ -532,6 +543,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
         credits: parseInt(credits) || 0,
         role,
         durationDays: parseInt(durationDays) || undefined,
+        accessKey: accessKey || undefined,
       },
       {
         onSuccess: () => {
@@ -541,6 +553,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
             loginCode: generatedLoginCode,
             label: label || undefined,
             durationDays: parseInt(durationDays) || 1,
+            accessKey: accessKey || undefined,
           });
           setShowCreated(true);
           setUsername("");
@@ -549,6 +562,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
           setCredits("0");
           setRole("client");
           setDurationDays("1");
+          setAccessKey("");
           setGeneratedLoginCode(generateLoginCode());
         },
       }
@@ -625,6 +639,24 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               <p className="text-sm font-medium text-foreground">{createdCredentials.password}</p>
             </div>
 
+            {/* Access Key */}
+            {createdCredentials.accessKey && (
+              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-green-500 font-medium">Chave de Acesso</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(createdCredentials.accessKey, "Chave de acesso")}
+                    className="h-5 px-2 text-xs text-green-500"
+                  >
+                    <Copy className="w-3 h-3 mr-1" /> Copiar
+                  </Button>
+                </div>
+                <p className="text-sm font-mono text-green-400">{createdCredentials.accessKey}</p>
+              </div>
+            )}
+
             {/* Info */}
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <p className="text-xs text-amber-500">
@@ -638,7 +670,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const all = `Login: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}`;
+                  const all = `Login: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}${createdCredentials.accessKey ? `\nKey: ${createdCredentials.accessKey}` : ''}`;
                   copyToClipboard(all, "Todas as credenciais");
                 }}
                 className="w-full gap-2"
@@ -746,6 +778,18 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               min="0"
               className="bg-background/50"
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Chave de Acesso (Key)</Label>
+            <Input
+              value={accessKey}
+              onChange={(e) => setAccessKey(e.target.value)}
+              placeholder="Chave de acesso do cliente (ex: Free Fire Proxy Key)"
+              className="bg-background/50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Esta chave será revelada ao cliente após ele usar o crédito para ativar.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Duração do Acesso (dias)</Label>
