@@ -46,9 +46,8 @@ async function seedDefaultAdmin() {
       return;
     }
 
-    // Use require for CJS module in dev
-    const authUtils = require("../auth-utils");
-    const { hashPassword } = authUtils;
+    // Import auth-utils dynamically (ESM)
+    const { hashPassword } = await import("../auth-utils");
     const { hash } = hashPassword("admin123");
 
     await connection.query(
