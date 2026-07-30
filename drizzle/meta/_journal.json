@@ -36,6 +36,20 @@
       "when": 1785442446436,
       "tag": "0004_charming_pixie",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1785443543424,
+      "tag": "0005_illegal_malice",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1785443951391,
+      "tag": "0006_breezy_anthem",
+      "breakpoints": true
     }
   ]
 }

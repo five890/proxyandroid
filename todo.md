@@ -32,3 +32,12 @@
 - [x] Corrigir bug: ao clicar em login e entrar, não funciona (redirecionamento falha)
 - [x] Testar fluxo completo de login admin no browser: login -> adminMe -> painel
 - [x] Validar que após login admin, a sessão persiste e não redireciona de volta
+- [x] Criar role "mini_admin" no schema para distinguir do admin principal
+- [x] Criar painel MiniAdmin com login próprio e funcionalidade de gerar acessos de 1 dia
+- [x] Mini admin pode criar clientes com duração fixa de 1 dia e código automático
+- [x] Mini admin não pode editar/excluir clientes (apenas criar)
+- [x] Admin principal pode criar e gerenciar mini admins
+- [x] Estender adminLogin para detectar mini_admin e criar sessão com role correta
+- [x] Restringir listMyClients para mostrar apenas clientes criados pelo mini admin (filtragem por createdByMiniAdminId)
+- [x] Criar painel frontend MiniAdmin (com restrição de visualização)
+- [x] Adicionar aba Mini Admins no painel do admin principal

@@ -1,0 +1,1 @@
+ALTER TABLE `client_credentials` MODIFY COLUMN `role` enum('client','admin','mini_admin') NOT NULL DEFAULT 'client';

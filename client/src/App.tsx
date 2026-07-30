@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
+import MiniAdmin from "./pages/MiniAdmin";
 import Expired from "./pages/Expired";
 import AntiScreenCapture from "./components/AntiScreenCapture";
 
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin" component={Admin} />
+      <Route path="/mini-admin" component={MiniAdmin} />
       <Route path="/expired" component={Expired} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

@@ -57,6 +57,28 @@ const adminSessionProcedure = publicProcedure.use(async ({ ctx, next }) => {
 // Admin-only procedure (uses admin_session)
 const adminProcedure = adminSessionProcedure;
 
+// Mini admin session middleware - validates admin_session cookie with mini_admin role
+const miniAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  const sessionCookie = ctx.req.cookies?.admin_session;
+  if (!sessionCookie) {
+    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Não autenticado como admin' });
+  }
+  try {
+    const session = JSON.parse(sessionCookie);
+    if (session.expiresAt && session.expiresAt < Date.now()) {
+      throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Sessão expirada' });
+    }
+    // Allow both admin and mini_admin roles
+    if (session.role !== 'admin' && session.role !== 'mini_admin') {
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso restrito a administradores' });
+    }
+    return next({ ctx: { ...ctx, adminSession: session } });
+  } catch (e) {
+    if (e instanceof TRPCError) throw e;
+    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Sessão inválida' });
+  }
+});
+
 export const appRouter = router({
   system: systemRouter,
 
@@ -192,31 +214,54 @@ export const appRouter = router({
         password: z.string().min(1),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Check admin credentials from admin_credentials table
-        const cred = await db.getAdminCredential(input.username);
-        if (!cred) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais administrativas inválidas' });
+        // First check admin_credentials table
+        const adminCred = await db.getAdminCredential(input.username);
+        if (adminCred) {
+          if (!verifyPassword(input.password, adminCred.passwordHash)) {
+            throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais administrativas inválidas' });
+          }
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          const sessionData = JSON.stringify({
+            id: adminCred.id,
+            username: adminCred.username,
+            role: 'admin',
+            expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+          });
+          ctx.res.cookie("admin_session", sessionData, {
+            ...cookieOptions,
+            maxAge: 7 * 24 * 60 * 60,
+            httpOnly: false,
+            sameSite: 'lax',
+          });
+          return { success: true, username: adminCred.username, role: 'admin' };
         }
-        if (!verifyPassword(input.password, cred.passwordHash)) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais administrativas inválidas' });
+
+        // Then check mini_admin credentials from client_credentials table
+        const miniAdminCred = await db.getClientCredentialByUsername(input.username);
+        if (miniAdminCred && miniAdminCred.role === 'mini_admin') {
+          if (!verifyPassword(input.password, miniAdminCred.passwordHash)) {
+            throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais administrativas inválidas' });
+          }
+          if (!miniAdminCred.active) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'Esta conta está desativada' });
+          }
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          const sessionData = JSON.stringify({
+            id: miniAdminCred.id,
+            username: miniAdminCred.username,
+            role: 'mini_admin',
+            expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+          });
+          ctx.res.cookie("admin_session", sessionData, {
+            ...cookieOptions,
+            maxAge: 7 * 24 * 60 * 60,
+            httpOnly: false,
+            sameSite: 'lax',
+          });
+          return { success: true, username: miniAdminCred.username, role: 'mini_admin' };
         }
 
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        const sessionData = JSON.stringify({
-          id: cred.id,
-          username: cred.username,
-          role: 'admin',
-          expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-        });
-
-        ctx.res.cookie("admin_session", sessionData, {
-          ...cookieOptions,
-          maxAge: 7 * 24 * 60 * 60,
-          httpOnly: false,
-          sameSite: 'lax',
-        });
-
-        return { success: true, username: cred.username };
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais administrativas inválidas' });
       }),
 
     adminLogout: publicProcedure.mutation(({ ctx }) => {
@@ -236,7 +281,7 @@ export const appRouter = router({
         return {
           id: session.id,
           username: session.username,
-          role: 'admin',
+          role: session.role || 'admin',
         };
       } catch {
         return null;
@@ -473,6 +518,126 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await db.deleteFileRecord(input.id);
       }),
+
+    // Mini admin management (admin only)
+    listMiniAdmins: adminProcedure.query(async () => {
+      const creds = await db.getAllClientCredentials();
+      return creds
+        .filter(c => c.role === 'mini_admin')
+        .map(c => ({
+          id: c.id,
+          username: c.username,
+          active: c.active,
+          createdAt: c.createdAt.toISOString(),
+        }));
+    }),
+
+    createMiniAdmin: adminProcedure
+      .input(z.object({
+        username: z.string().min(1),
+        password: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await db.getClientCredentialByUsername(input.username);
+        if (existing) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
+        }
+        const { hash } = hashPassword(input.password);
+        const result = await db.createClientCredential({
+          username: input.username,
+          passwordHash: hash,
+          active: true,
+          credits: 0,
+          durationDays: null,
+          expiresAt: null,
+          label: null,
+          loginCode: null,
+          role: 'mini_admin',
+        });
+        return { id: result.id, username: input.username };
+      }),
+
+    deleteMiniAdmin: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteClientCredential(input.id);
+      }),
+
+    toggleMiniAdminActive: adminProcedure
+      .input(z.object({ id: z.number(), active: z.boolean() }))
+      .mutation(async ({ input }) => {
+        await db.updateClientCredentialActive(input.id, input.active);
+      }),
+  }),
+
+  // ============ MINI ADMIN ROUTER ============
+  miniAdmin: router({
+    me: miniAdminProcedure.query(({ ctx }) => {
+      return {
+        id: ctx.adminSession.id,
+        username: ctx.adminSession.username,
+        role: ctx.adminSession.role,
+      };
+    }),
+
+    createClient: miniAdminProcedure
+      .input(z.object({
+        username: z.string().min(1),
+        password: z.string().min(6),
+        label: z.string().optional(),
+        credits: z.number().int().min(0).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Check if username already exists
+        const existing = await db.getClientCredentialByUsername(input.username);
+        if (existing) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
+        }
+
+        // Mini admin can only create clients with 1 day duration
+        const expiresAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000);
+        const loginCode = generateLoginCode();
+        const { hash } = hashPassword(input.password);
+
+        const result = await db.createClientCredential({
+          username: input.username,
+          passwordHash: hash,
+          active: true,
+          credits: input.credits || 0,
+          durationDays: 1,
+          expiresAt,
+          label: input.label || null,
+          loginCode,
+          role: 'client',
+          createdByMiniAdminId: ctx.adminSession.id,
+        });
+
+        return {
+          id: result.id,
+          username: input.username,
+          password: input.password,
+          loginCode,
+          expiresAt: expiresAt.toISOString(),
+        };
+      }),
+
+    listMyClients: miniAdminProcedure.query(async ({ ctx }) => {
+      const clients = await db.getAllClientCredentials();
+      // Filter: only clients created by this mini admin, and role must be 'client'
+      return clients
+        .filter(c => c.role === 'client' && c.createdByMiniAdminId === ctx.adminSession.id)
+        .map(c => ({
+          id: c.id,
+          username: c.username,
+          label: c.label || null,
+          credits: c.credits,
+          active: c.active,
+          expiresAt: c.expiresAt ? c.expiresAt.toISOString() : null,
+          durationDays: c.durationDays,
+          loginCode: c.loginCode || null,
+          createdAt: c.createdAt.toISOString(),
+        }));
+    }),
   }),
 });
 

@@ -15,8 +15,17 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   // Only redirect on UNAUTHORIZED errors (code: "UNAUTHORIZED")
   if (error.data?.code !== "UNAUTHORIZED") return;
 
+  // Redirect to appropriate login page based on current route
+  const path = window.location.pathname;
+  if (path.startsWith("/admin") || path.startsWith("/mini-admin")) {
+    // Don't redirect admin/mini-admin to client login
+    if (path !== "/admin-login" && !path.startsWith("/api/")) {
+      window.location.href = "/admin-login";
+    }
+    return;
+  }
   // Redirect to custom login page instead of OAuth
-  if (window.location.pathname !== "/login" && !window.location.pathname.startsWith("/api/")) {
+  if (path !== "/login" && !path.startsWith("/api/")) {
     window.location.href = "/login";
   }
 };

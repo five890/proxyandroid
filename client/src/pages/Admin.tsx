@@ -48,6 +48,7 @@ import {
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import MiniAdminPanel from "@/pages/MiniAdmin";
 
 // ============ CLIENT MANAGEMENT ============
 function ClientManagement() {
@@ -1121,6 +1122,191 @@ function HistoryDialog({ client, transactions, isLoading, onClose }: any) {
   );
 }
 
+// ============ MINI ADMIN MANAGEMENT ============
+function MiniAdminManagement() {
+  const [showCreate, setShowCreate] = useState(false);
+  const [createUsername, setCreateUsername] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const utils = trpc.useUtils();
+
+  const miniAdminsQuery = trpc.admin.listMiniAdmins.useQuery();
+  const createMiniAdminMutation = trpc.admin.createMiniAdmin.useMutation({
+    onSuccess: () => {
+      toast.success("Mini admin criado com sucesso!");
+      setShowCreate(false);
+      setCreateUsername("");
+      setCreatePassword("");
+      utils.admin.listMiniAdmins.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const toggleMutation = trpc.admin.toggleMiniAdminActive.useMutation({
+    onSuccess: () => utils.admin.listMiniAdmins.invalidate(),
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const deleteMutation = trpc.admin.deleteMiniAdmin.useMutation({
+    onSuccess: () => {
+      toast.success("Mini admin removido");
+      utils.admin.listMiniAdmins.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createUsername || !createPassword) return;
+    createMiniAdminMutation.mutate({
+      username: createUsername,
+      password: createPassword,
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">Mini Administradores</h2>
+          <p className="text-sm text-muted-foreground">Gerencie os mini admins que podem gerar acessos de 24h</p>
+        </div>
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="bg-gold hover:bg-gold/90 text-gold-foreground gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Novo Mini Admin
+        </Button>
+      </div>
+
+      {/* Create Dialog */}
+      <Dialog open={showCreate} onOpenChange={(open) => { if (!open) setShowCreate(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-gold" />
+              </div>
+              <div>
+                <DialogTitle>Criar Mini Admin</DialogTitle>
+                <DialogDescription>
+                  Mini admins podem gerar acessos de 24 horas para clientes.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label>Usuário</Label>
+              <Input
+                value={createUsername}
+                onChange={(e) => setCreateUsername(e.target.value)}
+                placeholder="Nome de usuário"
+                className="bg-background/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha</Label>
+              <Input
+                type="password"
+                value={createPassword}
+                onChange={(e) => setCreatePassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className="bg-background/50"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="submit"
+                className="w-full bg-gold hover:bg-gold/90 text-gold-foreground"
+                disabled={createMiniAdminMutation.isPending || !createUsername || !createPassword}
+              >
+                {createMiniAdminMutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Criando...
+                  </span>
+                ) : "Criar Mini Admin"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Table */}
+      <Card className="glass overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Usuário</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Criado em</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {miniAdminsQuery.isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8">
+                  <Loader2 className="w-5 h-5 text-muted-foreground animate-spin mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : miniAdminsQuery.data?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <ShieldCheck className="w-8 h-8 text-muted-foreground/30" />
+                    <p className="text-muted-foreground">Nenhum mini admin cadastrado</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              miniAdminsQuery.data?.map((ma) => (
+                <TableRow key={ma.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-3.5 h-3.5 text-gold" />
+                      <span className="font-medium">{ma.username}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={ma.active ? "default" : "destructive"} className="text-xs">
+                      {ma.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {new Date(ma.createdAt).toLocaleDateString('pt-BR')}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Switch
+                        checked={ma.active}
+                        onCheckedChange={(checked) => toggleMutation.mutate({ id: ma.id, active: checked })}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm(`Remover mini admin "${ma.username}"?`)) {
+                            deleteMutation.mutate({ id: ma.id });
+                          }
+                        }}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+}
+
 // ============ MAIN ADMIN PAGE ============
 export default function Admin() {
   const [, navigate] = useLocation();
@@ -1209,12 +1395,19 @@ export default function Admin() {
               <FileUp className="w-4 h-4" />
               Arquivos
             </TabsTrigger>
+            <TabsTrigger value="mini-admins" className="gap-2">
+              <ShieldCheck className="w-4 h-4" />
+              Mini Admins
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="clients">
             <ClientManagement />
           </TabsContent>
           <TabsContent value="files">
             <FileManagement />
+          </TabsContent>
+          <TabsContent value="mini-admins">
+            <MiniAdminManagement />
           </TabsContent>
         </Tabs>
       </main>
