@@ -58,4 +58,4 @@
 - [x] Salvar key individual do cliente no banco e exibir no painel do cliente
 - [x] Mostrar IP do cliente que logou na tabela do painel admin
 - [x] Salvar IP do cliente no login e atualizar no banco
-- [ ] Corrigir: chave de acesso não aparece no painel do cliente - o clientMe retorna accessKey do banco mas pode estar vindo como null se não foi definida por cliente. Garantir que a key global de settings seja usada como fallback.
+- [x] Corrigir: chave de acesso não aparece no painel do cliente - o clientMe retorna accessKey do banco mas pode estar vindo como null se não foi definida por cliente. Garantir que a key global de settings seja usada como fallback.

@@ -184,6 +184,17 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Expiration Warning for Keys */}
+            <div className="mb-4 flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left">
+              <Clock className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-400">EXPIRAÇÃO ANTECIPADA</p>
+                <p className="text-xs text-muted-foreground">
+                  As keys podem expirar entre <span className="font-semibold text-foreground">1 a 6 horas antes</span> do prazo final. Sempre ative uma nova key com antecedência para evitar banimentos no Free Fire.
+                </p>
+              </div>
+            </div>
+
             {/* Access Key */}
             {session.accessKey && (
               <Card className="p-4 mb-6 bg-primary/5 border border-primary/10">
@@ -413,6 +424,17 @@ export default function Dashboard() {
             </div>
           )}
         </Card>
+
+        {/* Key Expiration Warning */}
+        <div className="mb-6 flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <Clock className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-amber-400">EXPIRAÇÃO ANTECIPADA DE KEYS</p>
+            <p className="text-xs text-muted-foreground">
+              As keys podem expirar entre <span className="font-semibold text-foreground">1 a 6 horas antes</span> do prazo final. Sempre ative uma nova key com antecedência para evitar banimentos no Free Fire.
+            </p>
+          </div>
+        </div>
 
         {/* Expiration Warning */}
         {session.expiresAt && new Date(session.expiresAt) < new Date(Date.now() + 24 * 60 * 60 * 1000) && (
