@@ -70,3 +70,4 @@
 - [x] Impedir admins de criar outros admins (role só pode ser 'client')
 - [x] Impedir admins de editar/deletar outros admins (ação disponível apenas para clients)
 - [x] Backend: forçar role: 'client' no admin.createClient e bloquear edição de admins nas mutações
+- [x] Somente o proprietário (murillo) pode gerenciar admins - outros admins só gerenciam clients

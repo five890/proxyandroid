@@ -51,7 +51,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import MiniAdminPanel from "@/pages/MiniAdmin";
 
 // ============ CLIENT MANAGEMENT ============
-function ClientManagement() {
+function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; username: string; role: string } }) {
   const [showCreate, setShowCreate] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [showCredits, setShowCredits] = useState<any>(null);
@@ -246,7 +246,8 @@ function ClientManagement() {
                     </div>
                   ) : (
                   <div className="flex items-center justify-end gap-1">
-                    {client.role !== 'admin' && (
+                    {/* Only owner (murillo) can manage admin accounts; other admins can only manage clients */}
+                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -256,40 +257,48 @@ function ClientManagement() {
                         <Pencil className="w-4 h-4" />
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowCredits(client)}
-                      title="Créditos"
-                    >
-                      <CreditCard className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowHistory(client)}
-                      title="Histórico"
-                    >
-                      <History className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => resetDeviceMutation.mutate({ id: client.id })}
-                      title="Resetar Dispositivo"
-                      disabled={!client.deviceFingerprint}
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </Button>
-                    <div className="flex items-center mx-1">
-                      <Switch
-                        checked={client.active}
-                        onCheckedChange={(checked) =>
-                          toggleMutation.mutate({ id: client.id, active: checked })
-                        }
-                      />
-                    </div>
-                    {client.role !== 'admin' && (
+                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowCredits(client)}
+                        title="Créditos"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowHistory(client)}
+                        title="Histórico"
+                      >
+                        <History className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => resetDeviceMutation.mutate({ id: client.id })}
+                        title="Resetar Dispositivo"
+                        disabled={!client.deviceFingerprint}
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                      <div className="flex items-center mx-1">
+                        <Switch
+                          checked={client.active}
+                          onCheckedChange={(checked) =>
+                            toggleMutation.mutate({ id: client.id, active: checked })
+                          }
+                        />
+                      </div>
+                    )}
+                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -1578,27 +1587,35 @@ function Admin() {
               <FileUp className="w-4 h-4" />
               Arquivos
             </TabsTrigger>
-            <TabsTrigger value="mini-admins" className="gap-2">
-              <ShieldCheck className="w-4 h-4" />
-              Mini Admins
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2">
-              <Key className="w-4 h-4" />
-              Configurações
-            </TabsTrigger>
+            {adminMeQuery.data?.username === 'murillo' && (
+              <>
+                <TabsTrigger value="mini-admins" className="gap-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  Mini Admins
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="gap-2">
+                  <Key className="w-4 h-4" />
+                  Configurações
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
           <TabsContent value="clients">
-            <ClientManagement />
+            <ClientManagement currentAdmin={adminMeQuery.data} />
           </TabsContent>
           <TabsContent value="files">
             <FileManagement />
           </TabsContent>
-          <TabsContent value="mini-admins">
-            <MiniAdminManagement />
-          </TabsContent>
-          <TabsContent value="settings">
-            <SettingsManagement />
-          </TabsContent>
+          {adminMeQuery.data?.username === 'murillo' && (
+            <>
+              <TabsContent value="mini-admins">
+                <MiniAdminManagement />
+              </TabsContent>
+              <TabsContent value="settings">
+                <SettingsManagement />
+              </TabsContent>
+            </>
+          )}
         </Tabs>
       </main>
     </div>

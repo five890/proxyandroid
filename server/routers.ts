@@ -488,11 +488,11 @@ export const appRouter = router({
         durationDays: z.number().int().min(1).optional(),
         accessKey: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
-        // Prevent editing any admin account
+      .mutation(async ({ ctx, input }) => {
+        // Only the owner 'murillo' can edit admin accounts
         const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
+        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
         }
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing && existing.id !== input.id) {
@@ -516,10 +516,11 @@ export const appRouter = router({
         id: z.number(),
         password: z.string().min(6),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Only the owner 'murillo' can edit admin accounts
         const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
+        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
         }
         const { hash } = hashPassword(input.password);
         await db.updateClientCredential(input.id, { passwordHash: hash });
@@ -527,10 +528,11 @@ export const appRouter = router({
 
     regenerateLoginCode: adminProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Only the owner 'murillo' can edit admin accounts
         const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
+        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
         }
         const loginCode = generateLoginCode();
         await db.updateClientCredential(input.id, { loginCode });
@@ -539,10 +541,11 @@ export const appRouter = router({
 
     toggleClientActive: adminProcedure
       .input(z.object({ id: z.number(), active: z.boolean() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Only the owner 'murillo' can edit admin accounts
         const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
+        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
         }
         await db.updateClientCredentialActive(input.id, input.active);
       }),
@@ -558,8 +561,8 @@ export const appRouter = router({
         if (!credential) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
         }
-        if (credential.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
+        if (credential.role === 'admin' && ctx.adminSession.username !== 'murillo') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
         }
         const newCredits = credential.credits + input.amount;
         if (newCredits < 0) {
@@ -576,20 +579,20 @@ export const appRouter = router({
 
     resetClientDevice: adminProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível modificar contas de administrador' });
+        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
         }
         await db.resetClientDevice(input.id);
       }),
 
     deleteClient: adminProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const client = await db.getClientCredentialById(input.id);
         if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
-        if (client.role === 'admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível excluir um administrador' });
+        if (client.role === 'admin' && ctx.adminSession.username !== 'murillo') throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode excluir um administrador' });
         await db.deleteClientCredential(input.id);
       }),
 
@@ -654,7 +657,11 @@ export const appRouter = router({
         username: z.string().min(1),
         password: z.string().min(6),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Only the owner 'murillo' can create mini admins
+        if (ctx.adminSession.username !== 'murillo') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode criar mini admins' });
+        }
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
@@ -676,7 +683,11 @@ export const appRouter = router({
 
     deleteMiniAdmin: adminProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Only the owner 'murillo' can delete mini admins
+        if (ctx.adminSession.username !== 'murillo') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode excluir mini admins' });
+        }
         const miniAdmin = await db.getClientCredentialById(input.id);
         if (!miniAdmin) throw new TRPCError({ code: 'NOT_FOUND', message: 'Mini admin não encontrado' });
         if (miniAdmin.role === 'admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível excluir um administrador principal' });
@@ -685,7 +696,11 @@ export const appRouter = router({
 
     toggleMiniAdminActive: adminProcedure
       .input(z.object({ id: z.number(), active: z.boolean() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Only the owner 'murillo' can toggle mini admins
+        if (ctx.adminSession.username !== 'murillo') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode gerenciar mini admins' });
+        }
         await db.updateClientCredentialActive(input.id, input.active);
       }),
   }),
