@@ -68,9 +68,9 @@ const miniAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
     if (session.expiresAt && session.expiresAt < Date.now()) {
       throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Sessão expirada' });
     }
-    // Allow both admin and mini_admin roles
-    if (session.role !== 'admin' && session.role !== 'mini_admin') {
-      throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso restrito a administradores' });
+    // Only allow mini_admin role - full admins should use /admin panel
+    if (session.role !== 'mini_admin') {
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso restrito a mini administradores' });
     }
     return next({ ctx: { ...ctx, adminSession: session } });
   } catch (e) {
@@ -720,6 +720,8 @@ export const appRouter = router({
       }),
 
     listMyClients: miniAdminProcedure.query(async ({ ctx }) => {
+      // Mini admins can only see clients with role 'client' that they created
+      // They cannot see other admins or mini admins
       const clients = await db.getAllClientCredentials();
       // Filter: only clients created by this mini admin, and role must be 'client'
       return clients

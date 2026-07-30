@@ -390,6 +390,10 @@ export default function MiniAdmin() {
       if (!meQuery.data || meQuery.data.role === 'client') {
         navigate("/admin-login");
       }
+      // If it's a full admin, redirect to the main admin panel
+      if (meQuery.data?.role === 'admin') {
+        navigate("/admin");
+      }
     }
   }, [meQuery.isLoading, meQuery.data, navigate]);
 

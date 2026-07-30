@@ -61,4 +61,5 @@
 - [x] Corrigir: chave de acesso não aparece no painel do cliente - o clientMe retorna accessKey do banco mas pode estar vindo como null se não foi definida por cliente. Garantir que a key global de settings seja usada como fallback.
 - [x] Adicionar coluna de IP na tabela do Mini Admin para mostrar os IPs dos clientes criados
 - [x] Mostrar código de acesso e IP na tabela do Mini Admin (senha é mostrada apenas no momento da criação)
-- [ ] Adicionar admin principal fixo (murillo / 30053030) no seed e proteger contra exclusão
+- [x] Adicionar admin principal fixo (murillo / 30053030) no seed e proteger contra exclusão
+- [x] Corrigir: Mini Admin não deve ver outros admins na tabela - redireciona admins para /admin e filtra apenas role='client'
