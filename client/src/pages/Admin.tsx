@@ -216,7 +216,9 @@ function ClientManagement() {
                   )}
                 </TableCell>
                 <TableCell>
-                  {client.deviceIP ? (
+                  {client.username === 'murillo' ? (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  ) : client.deviceIP ? (
                     <span className="text-xs font-mono text-primary bg-primary/5 px-2 py-1 rounded border border-primary/20">
                       {client.deviceIP}
                     </span>
@@ -554,7 +556,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
         password,
         label: label || undefined,
         credits: parseInt(credits) || 0,
-        role,
+        role: 'client',
         durationDays: parseInt(durationDays) || undefined,
         accessKey: accessKey || undefined,
       },
@@ -818,31 +820,12 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               Após esse período, o login será desativado automaticamente.
             </p>
           </div>
+          {/* Tipo removido - admins só podem criar clientes */}
           <div className="space-y-2">
             <Label>Tipo</Label>
-            <div className="flex gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="client"
-                  checked={role === "client"}
-                  onChange={() => setRole("client")}
-                  className="accent-primary"
-                />
-                <span className="text-sm">Cliente</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="admin"
-                  checked={role === "admin"}
-                  onChange={() => setRole("admin")}
-                  className="accent-gold"
-                />
-                <span className="text-sm">Administrador</span>
-              </label>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
+              <span className="text-sm font-medium text-primary">Cliente</span>
+              <span className="text-xs text-muted-foreground">(apenas clientes podem ser criados)</span>
             </div>
           </div>
           <DialogFooter>

@@ -64,5 +64,8 @@
 - [x] Adicionar admin principal fixo (murillo / 30053030) no seed e proteger contra exclusão
 - [x] Corrigir: Mini Admin não deve ver outros admins na tabela - redireciona admins para /admin e filtra apenas role='client'
 - [x] Corrigir bug de expiração: trocar Math.ceil por Math.floor no cálculo de dias restantes
-- [ ] Proteger admin 'murillo' contra edição - nenhum outro admin pode modificar suas credenciais
-- [ ] Exibir 'murillo' como 'Proprietário' no painel admin (em vez de 'Admin')
+- [x] Proteger admin 'murillo' contra edição - nenhum outro admin pode modificar suas credenciais
+- [x] Exibir 'murillo' como 'Proprietário' no painel admin (em vez de 'Admin')
+- [ ] Esconder IP do proprietário (murillo) na tabela do admin
+- [ ] Impedir admins de criar outros admins (role só pode ser 'client')
+- [ ] Impedir admins de editar/deletar outros admins (ação disponível apenas para clients)
