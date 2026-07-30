@@ -1312,6 +1312,7 @@ function SettingsManagement() {
   const utils = trpc.useUtils();
   const settingsQuery = trpc.admin.getSettings.useQuery();
   const [activationUrl, setActivationUrl] = useState("https://freefireproxy.com.br/ativar/");
+  const [accessKey, setAccessKey] = useState("");
 
   const updateMutation = trpc.admin.updateSettings.useMutation({
     onSuccess: () => {
@@ -1322,13 +1323,22 @@ function SettingsManagement() {
   });
 
   useEffect(() => {
-    if (settingsQuery.data && settingsQuery.data.activation_url) {
-      setActivationUrl(settingsQuery.data.activation_url);
+    if (settingsQuery.data) {
+      if (settingsQuery.data.activation_url) {
+        setActivationUrl(settingsQuery.data.activation_url);
+      }
+      if (settingsQuery.data.access_key) {
+        setAccessKey(settingsQuery.data.access_key);
+      }
     }
   }, [settingsQuery.data]);
 
-  const handleSave = () => {
+  const handleSaveUrl = () => {
     updateMutation.mutate({ activationUrl });
+  };
+
+  const handleSaveKey = () => {
+    updateMutation.mutate({ accessKey });
   };
 
   return (
@@ -1342,7 +1352,7 @@ function SettingsManagement() {
       <Card className="p-6">
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
           <Key className="w-4 h-4 text-primary" />
-          URL de Ativação (Key)
+          URL de Ativação
         </h3>
         <p className="text-sm text-muted-foreground mb-4">
           URL que os clientes acessam para ativar a key com o IP do dispositivo.
@@ -1356,7 +1366,7 @@ function SettingsManagement() {
             className="flex-1"
           />
           <Button
-            onClick={handleSave}
+            onClick={handleSaveUrl}
             disabled={updateMutation.isPending}
             className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
           >
@@ -1379,12 +1389,59 @@ function SettingsManagement() {
         )}
       </Card>
 
+      {/* Access Key */}
+      <Card className="p-6">
+        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Key className="w-4 h-4 text-primary" />
+          Chave de Acesso (Key)
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Chave de acesso que será exibida ao cliente. O cliente copia essa chave e usa na URL de ativação acima.
+        </p>
+        <div className="flex gap-3">
+          <Input
+            value={accessKey}
+            onChange={(e) => setAccessKey(e.target.value)}
+            placeholder="Cole a chave de acesso aqui..."
+            className="flex-1 font-mono text-sm"
+          />
+          <Button
+            onClick={handleSaveKey}
+            disabled={updateMutation.isPending}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+          >
+            {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Salvar
+          </Button>
+        </div>
+        {accessKey && (
+          <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Chave que será exibida ao cliente:</p>
+              <p className="text-sm text-foreground font-mono font-semibold">{accessKey}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                navigator.clipboard.writeText(accessKey);
+                toast.success("Chave copiada!");
+              }}
+            >
+              <Copy className="w-4 h-4" />
+              Copiar
+            </Button>
+          </div>
+        )}
+      </Card>
+
       {/* Info Card */}
       <Card className="p-4 bg-primary/5 border border-primary/10">
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Como funciona:</span> O admin configura a URL de ativação acima.
+          <span className="font-medium text-foreground">Como funciona:</span> O admin configura a URL de ativação e a chave de acesso acima.
           Quando um cliente cria o login, ele recebe 1 crédito. Ao logar, ele precisa usar esse crédito para ativar a conta.
-          Após a ativação, o link de ativação aparece no painel do cliente para que ele possa autorizar o IP.
+          Após a ativação, a URL e a chave de acesso aparecem no painel do cliente com botões de copiar para facilitar o uso.
         </p>
       </Card>
     </div>

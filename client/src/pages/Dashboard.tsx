@@ -18,6 +18,8 @@ import {
   Key,
   CheckCircle2,
   Server,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/lib/utils";
@@ -182,6 +184,33 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Access Key */}
+            {session.accessKey && (
+              <Card className="p-4 mb-6 bg-primary/5 border border-primary/10">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-foreground flex items-center gap-1">
+                    <Key className="w-3 h-3" />
+                    Sua Chave de Acesso
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 text-xs"
+                    onClick={() => {
+                      navigator.clipboard.writeText(session.accessKey!);
+                      toast.success("Chave copiada!");
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                    Copiar
+                  </Button>
+                </div>
+                <p className="text-sm font-mono font-bold text-primary bg-background/50 px-3 py-2 rounded-lg select-all">
+                  {session.accessKey}
+                </p>
+              </Card>
+            )}
+
             {/* Server Info */}
             <Card className="p-4 mb-6 bg-primary/5 border border-primary/10 text-left">
               <div className="flex items-center gap-2 mb-3">
@@ -194,6 +223,31 @@ export default function Dashboard() {
                 <p>Porta: <span className="text-foreground">9997</span> - Hs Peito</p>
                 <p>Porta: <span className="text-foreground">9998</span> - Hs Alto</p>
               </div>
+              {session.activationUrl && (
+                <div className="mt-3 pt-3 border-t border-primary/10 flex items-center justify-between">
+                  <a
+                    href={session.activationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline font-medium flex items-center gap-1"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Ativar agora
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 text-xs"
+                    onClick={() => {
+                      navigator.clipboard.writeText(session.activationUrl!);
+                      toast.success("Link copiado!");
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                    Copiar link
+                  </Button>
+                </div>
+              )}
             </Card>
 
             {/* Credits */}
@@ -292,7 +346,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Server Info + Activation URL Card */}
+        {/* Server Info + Activation URL + Access Key Card */}
         <Card className="p-5 mb-6 bg-primary/5 border border-primary/10">
           <div className="flex items-center gap-2 mb-3">
             <Server className="w-4 h-4 text-primary" />
@@ -304,17 +358,58 @@ export default function Dashboard() {
             <p>Porta: <span className="text-foreground font-semibold">9997</span> - Hs Peito</p>
             <p>Porta: <span className="text-foreground font-semibold">9998</span> - Hs Alto</p>
           </div>
+
+          {/* Activation URL */}
           {session.activationUrl && (
-            <div className="pt-4 border-t border-primary/10">
+            <div className="pt-4 border-t border-primary/10 mb-3">
               <p className="text-xs text-muted-foreground mb-1">Link de ativação:</p>
-              <a
-                href={session.activationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline font-medium"
-              >
-                {session.activationUrl}
-              </a>
+              <div className="flex items-center justify-between">
+                <a
+                  href={session.activationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  {session.activationUrl}
+                </a>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => {
+                    navigator.clipboard.writeText(session.activationUrl!);
+                    toast.success("Link copiado!");
+                  }}
+                >
+                  <Copy className="w-3 h-3" />
+                  Copiar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Access Key */}
+          {session.accessKey && (
+            <div className="pt-4 border-t border-primary/10">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-muted-foreground">Chave de acesso:</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => {
+                    navigator.clipboard.writeText(session.accessKey!);
+                    toast.success("Chave copiada!");
+                  }}
+                >
+                  <Copy className="w-3 h-3" />
+                  Copiar
+                </Button>
+              </div>
+              <p className="text-sm font-mono font-bold text-primary bg-background/50 px-3 py-2 rounded-lg select-all">
+                {session.accessKey}
+              </p>
             </div>
           )}
         </Card>

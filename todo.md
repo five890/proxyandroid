@@ -51,3 +51,6 @@
 - [x] URL da key aparece na tela de ativação antes do cliente ativar
 - [x] Bloquear clientFiles.files e clientFiles.downloadFile quando activated === false
 - [x] No frontend, só consultar arquivos após ativação
+- [x] Campo de chave de acesso (key) no painel admin, igual ao campo de URL
+- [x] Chave de acesso aparece no painel do cliente com botão de copiar
+- [x] Chave de acesso aparece na tela de ativação com botão de copiar

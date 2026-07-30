@@ -193,8 +193,9 @@ export const appRouter = router({
           await db.updateClientCredentialActive(credential.id, false);
           return null;
         }
-        // Get activation URL from settings
+        // Get activation URL and access key from settings
         const activationSetting = await db.getSiteSetting('activation_url');
+        const accessKeySetting = await db.getSiteSetting('access_key');
         return {
           id: credential.id,
           username: credential.username,
@@ -205,6 +206,7 @@ export const appRouter = router({
           durationDays: credential.durationDays,
           activated: credential.activated || false,
           activationUrl: activationSetting?.value || null,
+          accessKey: accessKeySetting?.value || null,
         };
       } catch {
         return null;
@@ -399,10 +401,14 @@ export const appRouter = router({
     updateSettings: adminProcedure
       .input(z.object({
         activationUrl: z.string().optional(),
+        accessKey: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         if (input.activationUrl !== undefined) {
           await db.setSiteSetting('activation_url', input.activationUrl);
+        }
+        if (input.accessKey !== undefined) {
+          await db.setSiteSetting('access_key', input.accessKey);
         }
         return { success: true };
       }),
