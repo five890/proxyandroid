@@ -4,43 +4,23 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Lock, User, Eye, EyeOff, Monitor } from "lucide-react";
+import { ShieldCheck, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
-/**
- * Generate a device fingerprint from browser properties
- */
-function generateDeviceFingerprint(): string {
-  const components = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width.toString(),
-    screen.height.toString(),
-    navigator.hardwareConcurrency?.toString() || "0",
-    ((navigator as any).deviceMemory)?.toString() || "0",
-    new Date().getTimezoneOffset().toString(),
-    window.screen.colorDepth.toString(),
-    navigator.platform,
-    Array.from(navigator.plugins).map(p => p.name).join(","),
-  ];
-  return components.join("|");
-}
-
-export default function Login() {
+export default function AdminLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
 
-  // Client login
-  const loginMutation = trpc.auth.clientLogin.useMutation({
-    onSuccess: (data) => {
-      toast.success(`Bem-vindo, ${data.credential.username}!`);
-      setLocation("/dashboard");
+  const loginMutation = trpc.auth.adminLogin.useMutation({
+    onSuccess: () => {
+      toast.success("Login administrativo realizado!");
+      navigate("/admin");
     },
     onError: (error) => {
-      toast.error(error.message || "Erro ao fazer login");
+      toast.error(error.message || "Credenciais administrativas inválidas");
       setLoading(false);
     },
   });
@@ -52,7 +32,6 @@ export default function Login() {
     loginMutation.mutate({
       username,
       password,
-      deviceFingerprint: generateDeviceFingerprint(),
     });
   };
 
@@ -62,18 +41,18 @@ export default function Login() {
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/50" />
       
       {/* Decorative elements */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/5 rounded-full blur-3xl" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gold/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
       
       <div className="relative w-full max-w-md px-6">
         {/* Logo / Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4 glow-primary">
-            <Shield className="w-8 h-8 text-primary" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gold/10 mb-4 glow-gold">
+            <ShieldCheck className="w-8 h-8 text-gold" />
           </div>
-          <h1 className="text-3xl font-bold gradient-text mb-2">Portal de Acesso</h1>
+          <h1 className="text-3xl font-bold gradient-text mb-2">Painel Administrativo</h1>
           <p className="text-muted-foreground text-sm">
-            Acesse sua área exclusiva
+            Insira suas credenciais de administrador
           </p>
         </div>
 
@@ -81,18 +60,18 @@ export default function Login() {
         <div className="glass rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="client-username" className="text-sm font-medium text-foreground/80">
-                Usuário
+              <Label htmlFor="admin-username" className="text-sm font-medium text-foreground/80">
+                Usuário Admin
               </Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  id="client-username"
+                  id="admin-username"
                   type="text"
-                  placeholder="Seu nome de usuário"
+                  placeholder="Usuário do administrador"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="pl-10 h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                  className="pl-10 h-11 bg-background/50 border-border/50 focus:border-gold/50 focus:ring-gold/20"
                   autoComplete="username"
                   disabled={loading}
                 />
@@ -100,18 +79,18 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="client-password" className="text-sm font-medium text-foreground/80">
+              <Label htmlFor="admin-password" className="text-sm font-medium text-foreground/80">
                 Senha
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  id="client-password"
+                  id="admin-password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Sua senha"
+                  placeholder="Senha do administrador"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                  className="pl-10 pr-10 h-11 bg-background/50 border-border/50 focus:border-gold/50 focus:ring-gold/20"
                   autoComplete="current-password"
                   disabled={loading}
                 />
@@ -127,25 +106,24 @@ export default function Login() {
 
             <Button
               type="submit"
-              className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+              className="w-full h-11 bg-gold hover:bg-gold/90 text-gold-foreground font-medium glow-gold"
               disabled={loading || !username || !password}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-gold-foreground/30 border-t-gold-foreground rounded-full animate-spin" />
                   Entrando...
                 </span>
               ) : (
-                "Acessar Portal"
+                "Acessar Painel"
               )}
             </Button>
           </form>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-6 flex items-center justify-center gap-1">
-          <Monitor className="w-3 h-3" />
-          Proteção de dispositivo ativa. Cada login funciona em apenas um dispositivo.
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Acesso restrito. Área exclusiva do administrador.
         </p>
       </div>
     </div>

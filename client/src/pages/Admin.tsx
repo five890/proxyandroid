@@ -823,7 +823,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (!adminMeQuery.isLoading && !adminMeQuery.data) {
-      navigate("/login");
+      navigate("/admin-login");
     }
     if (!adminMeQuery.isLoading) {
       setLoading(false);
@@ -832,7 +832,7 @@ export default function Admin() {
 
   const logoutMutation = trpc.auth.adminLogout.useMutation({
     onSuccess: () => {
-      navigate("/login");
+      navigate("/admin-login");
     },
   });
 

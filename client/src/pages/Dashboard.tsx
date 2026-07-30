@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -20,16 +20,17 @@ import { formatBytes } from "@/lib/utils";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
-  const [session, setSession] = useState<any>(null);
+  const utils = trpc.useUtils();
 
-  // Check client session
-  const clientMeQuery = trpc.auth.clientMe.useQuery();
+  // Check client session - always fresh from DB
+  const clientMeQuery = trpc.auth.clientMe.useQuery(undefined, {
+    refetchInterval: 30000, // Refresh every 30s to catch credit changes
+    refetchOnWindowFocus: true,
+  });
 
   useEffect(() => {
     if (!clientMeQuery.isLoading) {
-      if (clientMeQuery.data) {
-        setSession(clientMeQuery.data);
-      } else {
+      if (!clientMeQuery.data) {
         setLocation("/login");
       }
     }
@@ -45,7 +46,7 @@ export default function Dashboard() {
     },
   });
 
-  // Download handler
+  // Download handler - always validates credits from server
   const downloadMutation = trpc.clientFiles.downloadFile.useMutation({
     onSuccess: (data) => {
       const link = document.createElement("a");
@@ -53,6 +54,8 @@ export default function Dashboard() {
       link.download = data.originalName;
       link.click();
       toast.success(`Download iniciado: ${data.originalName}`);
+      // Refresh session data after download
+      utils.auth.clientMe.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "Erro ao baixar arquivo");
@@ -60,16 +63,14 @@ export default function Dashboard() {
   });
 
   const handleDownload = (fileId: number) => {
-    if (session.credits <= 0) {
-      toast.error("Sem créditos suficientes para download.");
-      return;
-    }
     downloadMutation.mutate({ fileId });
   };
 
   const handleLogout = () => {
     logoutMutation.mutate();
   };
+
+  const session = clientMeQuery.data;
 
   if (clientMeQuery.isLoading) {
     return (

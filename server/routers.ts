@@ -135,7 +135,7 @@ export const appRouter = router({
       return { success: true } as const;
     }),
 
-    clientMe: publicProcedure.query(({ ctx }) => {
+    clientMe: publicProcedure.query(async ({ ctx }) => {
       const sessionCookie = ctx.req.cookies?.client_session;
       if (!sessionCookie) return null;
       try {
@@ -143,11 +143,16 @@ export const appRouter = router({
         if (session.expiresAt && session.expiresAt < Date.now()) {
           return null;
         }
+        // Fetch fresh data from database so credits are always up-to-date
+        const credential = await db.getClientCredentialById(session.credentialId);
+        if (!credential || !credential.active) {
+          return null;
+        }
         return {
-          id: session.credentialId,
-          username: session.username,
-          credits: session.credits,
-          label: session.label || null,
+          id: credential.id,
+          username: credential.username,
+          credits: credential.credits,
+          label: credential.label || null,
         };
       } catch {
         return null;
@@ -231,6 +236,12 @@ export const appRouter = router({
     downloadFile: clientSessionProcedure
       .input(z.object({ fileId: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        // Check credits from DB (not session cookie) to prevent bypass
+        const credential = await db.getClientCredentialById(ctx.clientSession.credentialId);
+        if (!credential || credential.credits <= 0) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem créditos suficientes para download.' });
+        }
+
         const clientIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
           ? ctx.req.headers['x-forwarded-for'][0]
           : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';

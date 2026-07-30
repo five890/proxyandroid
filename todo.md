@@ -19,3 +19,6 @@
 - [x] Criar admin padrão via seed (primeiro acesso)
 - [x] Validar visualmente /admin e /dashboard com screenshots
 - [x] Atualizar testes para incluir adminLogin
+- [x] Remover aba "Administrador" da página de login (não deve aparecer na página inicial)
+- [x] Criar página separada /admin-login para acesso administrativo
+- [x] Corrigir: quando admin altera créditos, não reflete no dashboard do cliente

@@ -189,6 +189,13 @@ describe("auth.clientMe", () => {
       credits: 10,
       expiresAt: Date.now() + 86400000,
     });
+    (db.getClientCredentialById as any).mockResolvedValue({
+      id: 1,
+      username: "testuser",
+      credits: 10,
+      active: true,
+      label: "Test Client",
+    });
     const { ctx } = createMockContext();
     ctx.req.cookies = { client_session: sessionData };
     const caller = appRouter.createCaller(ctx);
