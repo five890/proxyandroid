@@ -40,7 +40,14 @@ export default function Login() {
       setLocation("/dashboard");
     },
     onError: (error) => {
-      toast.error(error.message || "Erro ao fazer login");
+      const errorMsg = error.message || "Erro ao fazer login";
+      if (errorMsg.includes("expirou") || errorMsg.includes("Expirou")) {
+        // Set flag and redirect to expired page
+        sessionStorage.setItem("login_expired", "true");
+        setLocation("/expired");
+      } else {
+        toast.error(errorMsg);
+      }
       setLoading(false);
     },
   });

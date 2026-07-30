@@ -29,16 +29,36 @@ export default function Dashboard() {
     refetchOnWindowFocus: true,
   });
 
+  // Check for expired session from tRPC error
+  const clientMeError = clientMeQuery.error as any;
+  const isExpiredError = clientMeError?.data?.code === "FORBIDDEN" && 
+    (clientMeError?.message?.includes("expirou") || clientMeError?.message?.includes("Expirou"));
+
   useEffect(() => {
     if (!clientMeQuery.isLoading) {
       if (!clientMeQuery.data) {
-        setLocation("/login");
+        const isExpired = sessionStorage.getItem("login_expired") === "true" || isExpiredError;
+        if (isExpired) {
+          setLocation("/expired");
+        } else {
+          setLocation("/login");
+        }
       }
     }
-  }, [clientMeQuery.data, clientMeQuery.isLoading]);
+  }, [clientMeQuery.data, clientMeQuery.isLoading, isExpiredError]);
 
   // Fetch files
   const filesQuery = trpc.clientFiles.files.useQuery();
+
+  // Check for expired error from files query
+  const filesError = filesQuery.error as any;
+  useEffect(() => {
+    if (filesError?.data?.code === "FORBIDDEN" && 
+        (filesError?.message?.includes("expirou") || filesError?.message?.includes("Expirou"))) {
+      sessionStorage.setItem("login_expired", "true");
+      setLocation("/expired");
+    }
+  }, [filesError]);
 
   // Logout
   const logoutMutation = trpc.auth.clientLogout.useMutation({

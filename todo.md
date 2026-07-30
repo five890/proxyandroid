@@ -25,3 +25,6 @@
 - [x] Adicionar sistema de expiração de login (duração em dias configurável pelo admin)
 - [x] Desativação automática após expiração
 - [x] Mostrar dias restantes no painel admin e dashboard do cliente
+- [x] Quando login expirar, mostrar mensagem clara: "Seu login expirou, compre outro acesso"
+- [x] Página de expiração separada no lado do cliente com design elegante
+- [x] Garantir que ao tentar acessar com login expirado, redirecione para tela de expiração
