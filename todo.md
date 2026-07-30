@@ -29,3 +29,6 @@
 - [x] Página de expiração separada no lado do cliente com design elegante
 - [x] Garantir que ao tentar acessar com login expirado, redirecione para tela de expiração
 - [x] Gerar login automaticamente com nome do usuário + número aleatório (ex.: 0930 9202 8377) no painel admin
+- [x] Corrigir bug: ao clicar em login e entrar, não funciona (redirecionamento falha)
+- [x] Testar fluxo completo de login admin no browser: login -> adminMe -> painel
+- [x] Validar que após login admin, a sessão persiste e não redireciona de volta

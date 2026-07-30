@@ -212,7 +212,7 @@ export const appRouter = router({
         ctx.res.cookie("admin_session", sessionData, {
           ...cookieOptions,
           maxAge: 7 * 24 * 60 * 60,
-          httpOnly: true,
+          httpOnly: false,
           sameSite: 'lax',
         });
 
