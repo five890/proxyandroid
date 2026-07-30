@@ -32,6 +32,9 @@ import {
   Shield,
   UserPlus,
   CheckCircle2,
+  Monitor,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -269,6 +272,105 @@ function CreateClientDialog({ open, onClose }: { open: boolean; onClose: () => v
   );
 }
 
+// ============ MINI ADMIN ROW ============
+function MiniAdminRow({ client }: { client: {
+  id: number;
+  username: string;
+  loginCode: string | null;
+  label: string | null;
+  active: boolean;
+  expiresAt: string | null;
+  deviceIP: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+} }) {
+  const [showPassword, setShowPassword] = useState(false);
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado!`);
+  };
+
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Key className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="font-mono text-sm">{client.username}</span>
+          <button
+            onClick={() => copyToClipboard(client.username, "Usuário")}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Copy className="w-3 h-3" />
+          </button>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-mono">{showPassword ? "••••••" : "••••••"}</span>
+          <button
+            onClick={() => setShowPassword(!showPassword)}
+            className="text-muted-foreground hover:text-foreground transition-colors ml-1"
+          >
+            {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+          </button>
+        </div>
+        {showPassword && (
+          <p className="text-[10px] text-muted-foreground/60 mt-1">Senha não disponível após criação. Salve no momento da criação.</p>
+        )}
+      </TableCell>
+      <TableCell>
+        {client.loginCode ? (
+          <div className="flex items-center gap-1">
+            <code className="text-xs bg-background/50 px-2 py-0.5 rounded font-mono">
+              {client.loginCode}
+            </code>
+            <button
+              onClick={() => copyToClipboard(client.loginCode!, "Código")}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Copy className="w-3 h-3" />
+            </button>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="text-sm">{client.label || "—"}</TableCell>
+      <TableCell>
+        {client.deviceIP ? (
+          <code className="text-xs bg-blue-500/10 px-2 py-0.5 rounded font-mono text-blue-400">
+            {client.deviceIP}
+          </code>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell>
+        <Badge variant="outline" className="text-xs gap-1">
+          <Clock className="w-3 h-3" />
+          {client.expiresAt ? new Date(client.expiresAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : "—"}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <Badge
+          variant={client.active ? "default" : "destructive"}
+          className="text-xs"
+        >
+          {client.active ? "Ativo" : "Expirado"}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-xs text-muted-foreground">
+        {client.lastLoginAt ? (
+          new Date(client.lastLoginAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        ) : (
+          "—"
+        )}
+      </TableCell>
+    </TableRow>
+  );
+}
+
 // ============ MINI ADMIN MAIN PAGE ============
 export default function MiniAdmin() {
   const [, navigate] = useLocation();
@@ -423,27 +525,30 @@ export default function MiniAdmin() {
 
         {/* Table */}
         <Card className="glass overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Usuário</TableHead>
+                <TableHead>Senha</TableHead>
                 <TableHead>Código</TableHead>
                 <TableHead>Label</TableHead>
+                <TableHead>IP</TableHead>
                 <TableHead>Validade</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Criado em</TableHead>
+                <TableHead>Último Login</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {clientsQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <Loader2 className="w-5 h-5 text-muted-foreground animate-spin mx-auto" />
                   </TableCell>
                 </TableRow>
               ) : clientsQuery.data?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
+                  <TableCell colSpan={8} className="text-center py-12">
                     <div className="flex flex-col items-center gap-3">
                       <Key className="w-8 h-8 text-muted-foreground/30" />
                       <p className="text-muted-foreground">Nenhum acesso gerado ainda</p>
@@ -453,45 +558,12 @@ export default function MiniAdmin() {
                 </TableRow>
               ) : (
                 clientsQuery.data?.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Key className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="font-mono text-sm">{client.username}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {client.loginCode ? (
-                        <code className="text-xs bg-background/50 px-2 py-0.5 rounded font-mono">
-                          {client.loginCode}
-                        </code>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">{client.label || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs gap-1">
-                        <Clock className="w-3 h-3" />
-                        {client.expiresAt ? new Date(client.expiresAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : "—"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={client.active ? "default" : "destructive"}
-                        className="text-xs"
-                      >
-                        {client.active ? "Ativo" : "Expirado"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(client.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </TableCell>
-                  </TableRow>
+                  <MiniAdminRow key={client.id} client={client} />
                 ))
               )}
             </TableBody>
           </Table>
+          </div>
         </Card>
       </main>
 

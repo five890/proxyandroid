@@ -727,6 +727,10 @@ export const appRouter = router({
           expiresAt: c.expiresAt ? c.expiresAt.toISOString() : null,
           durationDays: c.durationDays,
           loginCode: c.loginCode || null,
+          deviceIP: c.deviceIP || null,
+          deviceFingerprint: c.deviceFingerprint || null,
+          lastLoginAt: c.lastLoginAt ? c.lastLoginAt.toISOString() : null,
+          accessKey: c.accessKey || null,
           createdAt: c.createdAt.toISOString(),
         }));
     }),
