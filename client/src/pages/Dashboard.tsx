@@ -546,20 +546,17 @@ export default function Dashboard() {
                 <span className="text-sm font-bold text-white">📱 Como Configurar o Proxy Android</span>
               </div>
               <p className="text-xs text-gray-400 mb-4">
-                Assista o tutorial abaixo para aprender como configurar o proxy no seu dispositivo.
+                Baixe o tutorial abaixo para aprender como configurar o proxy no seu dispositivo.
               </p>
-              <video
-                controls
-                preload="metadata"
-                className="w-full rounded-lg bg-black"
-                style={{ maxHeight: '400px' }}
+              <a
+                href="https://www.mediafire.com/file/n53tty5h2lgm30a/6dff2a17-d9ff-4a07-ba31-0f0c582255f1.mov/file"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-3 w-full p-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all duration-200 group"
               >
-                <source
-                  src="https://cdn.discordapp.com/attachments/1527373022325903450/1527392731704594484/6dff2a17-d9ff-4a07-ba31-0f0c582255f1.mov"
-                  type="video/mp4"
-                />
-                Seu navegador não suporta a reprodução de vídeos.
-              </video>
+                <Download className="w-5 h-5 group-hover:animate-bounce" />
+                Baixar Tutorial
+              </a>
             </Card>
           </>
         )}
