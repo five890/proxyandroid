@@ -46,6 +46,7 @@ export const clientCredentials = mysqlTable("client_credentials", {
   lastLoginAt: timestamp("lastLoginAt"),
   generationLimit: int("generationLimit").default(0).notNull(),
   generationsUsed: int("generationsUsed").default(0).notNull(),
+  accessType: mysqlEnum("accessType", ["proxy_ios", "proxy_android"]).default("proxy_ios").notNull(),
 });
 
 export type ClientCredential = typeof clientCredentials.$inferSelect;

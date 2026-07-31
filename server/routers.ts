@@ -222,6 +222,7 @@ export const appRouter = router({
           activated: credential.activated || false,
           activationUrl: credential.activated ? (activationSetting?.value || null) : null,
           accessKey,
+          accessType: credential.accessType || 'proxy_ios',
           createdByAdmin: credential.createdByAdmin || null,
         };
       } catch {
@@ -398,6 +399,7 @@ export const appRouter = router({
         generationLimit: c.generationLimit || 0,
         generationsUsed: c.generationsUsed || 0,
         createdByAdmin: c.createdByAdmin || null,
+        accessType: c.accessType || 'proxy_ios',
       }));
     }),
 
@@ -411,24 +413,26 @@ export const appRouter = router({
         durationDays: z.number().int().min(1).optional(),
         accessKey: z.string().optional(),
         generationLimit: z.number().int().min(0).optional(),
+        accessType: z.enum(['proxy_ios', 'proxy_android']).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Admins e o proprietário podem criar clientes
-        // Apenas o proprietário pode definir duração e limite de gerações
         const owner = isOwner(ctx.adminSession);
         const role = 'client';
+        const accessType = input.accessType || 'proxy_ios';
+        // Proxy Android exige key obrigatória
+        if (accessType === 'proxy_android' && (!input.accessKey || input.accessKey.trim().length === 0)) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Proxy Android exige uma chave de acesso obrigatória.' });
+        }
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
         }
         const { hash } = hashPassword(input.password);
-        // Admins comuns ficam limitados a 1 dia
         const finalDurationDays = owner ? (input.durationDays || 1) : 1;
         const expiresAt = new Date(Date.now() + finalDurationDays * 24 * 60 * 60 * 1000);
         const loginCode = generateLoginCode();
-        // Aplicar accessKey global automaticamente se não for fornecida
-        const globalAccessKeySetting = await db.getSiteSetting('access_key');
-        const finalAccessKey = input.accessKey || globalAccessKeySetting?.value || null;
+        // Proxy Android: usa a key fornecida, Proxy iOS: usa key global se não fornecida
+        const finalAccessKey = accessType === 'proxy_android' ? (input.accessKey || null) : (input.accessKey || null);
         const result = await db.createClientCredential({
           username: input.username,
           passwordHash: hash,
@@ -439,13 +443,14 @@ export const appRouter = router({
           durationDays: finalDurationDays,
           expiresAt: expiresAt,
           loginCode,
-          activated: false,
+          activated: accessType === 'proxy_android', // Proxy Android já nasce ativado
           accessKey: finalAccessKey,
           generationLimit: owner ? (input.generationLimit || 0) : 0,
           generationsUsed: 0,
           createdByAdmin: ctx.adminSession.username,
+          accessType,
         });
-        return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey };
+        return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey, accessType };
       }),
 
     updateClient: adminProcedure

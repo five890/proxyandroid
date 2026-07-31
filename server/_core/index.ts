@@ -74,7 +74,8 @@ async function createTables() {
       updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
       lastLoginAt TIMESTAMP NULL,
       generationLimit INT NOT NULL DEFAULT 0,
-      generationsUsed INT NOT NULL DEFAULT 0
+      generationsUsed INT NOT NULL DEFAULT 0,
+      accessType ENUM('proxy_ios', 'proxy_android') NOT NULL DEFAULT 'proxy_ios'
     )
   `);
 
@@ -96,6 +97,12 @@ async function createTables() {
     console.log("[DB] Added createdByAdmin column");
   } catch (e: any) {
     if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] createdByAdmin already exists");
+  }
+  try {
+    await connection.query(`ALTER TABLE client_credentials ADD COLUMN accessType ENUM('proxy_ios', 'proxy_android') NOT NULL DEFAULT 'proxy_ios'`);
+    console.log("[DB] Added accessType column");
+  } catch (e: any) {
+    if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] accessType already exists");
   }
 
   // files table

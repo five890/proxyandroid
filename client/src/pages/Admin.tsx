@@ -137,6 +137,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
               <TableHead>Usuário</TableHead>
               <TableHead>Código</TableHead>
               <TableHead>Label</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Criado por</TableHead>
               <TableHead>Créditos</TableHead>
               <TableHead>Validade</TableHead>
@@ -171,6 +172,18 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                   )}
                 </TableCell>
                 <TableCell>{client.label || "—"}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={
+                      client.accessType === 'proxy_android'
+                        ? 'text-[10px] bg-green-500/10 text-green-400 border-green-500/30'
+                        : 'text-[10px] bg-red-500/10 text-red-400 border-red-500/30'
+                    }
+                  >
+                    {client.accessType === 'proxy_android' ? 'Android' : 'iOS'}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   {client.createdByAdmin ? (
                     <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/30">
@@ -555,6 +568,8 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   const [role, setRole] = useState<"client" | "admin">("client");
   const [durationDays, setDurationDays] = useState("1");
   const [generationLimit, setGenerationLimit] = useState("0");
+  const [accessType, setAccessType] = useState<"proxy_ios" | "proxy_android">("proxy_ios");
+  const [accessKeyInput, setAccessKeyInput] = useState("");
   const [generatedLoginCode, setGeneratedLoginCode] = useState("");
   const [showCreated, setShowCreated] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<any>(null);
@@ -571,6 +586,11 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Proxy Android exige key obrigatória
+    if (accessType === 'proxy_android' && (!accessKeyInput || accessKeyInput.trim().length === 0)) {
+      toast.error("Proxy Android exige uma chave de acesso obrigatória.");
+      return;
+    }
     mutation.mutate(
       {
         username,
@@ -580,6 +600,8 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
         role: 'client',
         durationDays: parseInt(durationDays) || undefined,
         generationLimit: parseInt(generationLimit) || 0,
+        accessType,
+        accessKey: accessType === 'proxy_android' ? accessKeyInput : undefined,
       },
       {
         onSuccess: (data) => {
@@ -590,6 +612,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
             label: label || undefined,
             durationDays: parseInt(durationDays) || 1,
             accessKey: data?.accessKey || null,
+            accessType: data?.accessType || 'proxy_ios',
           });
           setShowCreated(true);
           setUsername("");
@@ -599,6 +622,8 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
           setRole("client");
           setDurationDays("1");
           setGenerationLimit("0");
+          setAccessType("proxy_ios");
+          setAccessKeyInput("");
           setGeneratedLoginCode(generateLoginCode());
         },
       }
@@ -647,6 +672,22 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               <p className="text-sm font-medium text-foreground mt-1">{createdCredentials.password}</p>
             </div>
 
+            {/* Tipo de Acesso */}
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <span className="text-xs text-blue-400">Tipo de Acesso</span>
+              <p className="text-sm font-medium text-blue-300 mt-1">
+                {createdCredentials.accessType === 'proxy_android' ? 'Proxy Android' : 'Proxy iOS'}
+              </p>
+            </div>
+
+            {/* Key - mostrada apenas para Proxy Android */}
+            {createdCredentials.accessType === 'proxy_android' && createdCredentials.accessKey && (
+              <div className="p-3 rounded-lg bg-gold/10 border border-gold/20">
+                <span className="text-xs text-gold">Chave de Acesso</span>
+                <p className="text-sm font-mono text-gold font-semibold mt-1">{createdCredentials.accessKey}</p>
+              </div>
+            )}
+
             {/* Info */}
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <p className="text-xs text-amber-500">
@@ -654,12 +695,15 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               </p>
             </div>
 
-            {/* Single Copy Button - copia usuário + senha + código */}
+            {/* Single Copy Button - copia usuário + senha + código + key se for Proxy Android */}
             <div className="pt-2 border-t border-border">
               <Button
                 className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                 onClick={() => {
-                  const all = `Usuário: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}`;
+                  let all = `Usuário: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}`;
+                  if (createdCredentials.accessType === 'proxy_android' && createdCredentials.accessKey) {
+                    all += `\nChave: ${createdCredentials.accessKey}`;
+                  }
                   copyToClipboard(all, "Credenciais");
                 }}
               >
@@ -795,14 +839,51 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               Número máximo de gerações que o cliente pode fazer. 0 = sem limite.
             </p>
           </div>
-          {/* Tipo removido - admins só podem criar clientes */}
+          {/* Tipo de Acesso */}
           <div className="space-y-2">
-            <Label>Tipo</Label>
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
-              <span className="text-sm font-medium text-primary">Cliente</span>
-              <span className="text-xs text-muted-foreground">(apenas clientes podem ser criados)</span>
+            <Label>Tipo de Acesso</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={accessType === 'proxy_ios' ? 'default' : 'outline'}
+                onClick={() => { setAccessType('proxy_ios'); setAccessKeyInput(''); }}
+                className={accessType === 'proxy_ios' ? 'bg-red-600 hover:bg-red-700' : ''}
+              >
+                Proxy iOS
+              </Button>
+              <Button
+                type="button"
+                variant={accessType === 'proxy_android' ? 'default' : 'outline'}
+                onClick={() => setAccessType('proxy_android')}
+                className={accessType === 'proxy_android' ? 'bg-green-600 hover:bg-green-700' : ''}
+              >
+                Proxy Android
+              </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              {accessType === 'proxy_ios' 
+                ? 'Proxy iOS: Cliente recebe key + link de ativação. Não ativado automaticamente.'
+                : 'Proxy Android: Cliente vai direto pro painel de arquivos. Requer chave obrigatória.'
+              }
+            </p>
           </div>
+
+          {/* Chave de Acesso - obrigatória para Proxy Android */}
+          <div className="space-y-2">
+            <Label>
+              Chave de Acesso {accessType === 'proxy_android' && <span className="text-red-500">*</span>}
+            </Label>
+            <Input
+              value={accessKeyInput}
+              onChange={(e) => setAccessKeyInput(e.target.value)}
+              placeholder={accessType === 'proxy_android' ? 'Obrigatória para Proxy Android' : 'Opcional'}
+              className="bg-background/50"
+            />
+            {accessType === 'proxy_android' && !accessKeyInput.trim() && (
+              <p className="text-xs text-red-500">A chave de acesso é obrigatória para Proxy Android.</p>
+            )}
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
@@ -810,7 +891,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
             <Button
               type="submit"
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={mutation.isPending || !username || !password}
+              disabled={mutation.isPending || !username || !password || (accessType === 'proxy_android' && !accessKeyInput.trim())}
             >
               {mutation.isPending ? "Criando..." : "Criar Cliente"}
             </Button>

@@ -147,7 +147,8 @@ export default function Dashboard() {
   if (!session) return null;
 
   // ============ ACTIVATION SCREEN ============
-  if (!session.activated) {
+  // Proxy Android já nasce ativado, não precisa de tela de ativação
+  if (!session.activated && session.accessType === 'proxy_ios') {
     return (
       <div className="min-h-screen bg-black">
         {/* Header */}
@@ -352,6 +353,12 @@ export default function Dashboard() {
               <span className="text-xs text-blue-400">Painel criado por: <strong>{session.createdByAdmin}</strong></span>
             </div>
           )}
+          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-green-900/20 border border-green-500/30">
+            <Monitor className="w-3 h-3 text-green-400" />
+            <span className="text-xs text-green-400">
+              Tipo: <strong>{session.accessType === 'proxy_android' ? 'Proxy Android' : 'Proxy iOS'}</strong>
+            </span>
+          </div>
         </div>
 
         {/* Server Info + Activation URL + Access Key Card */}
