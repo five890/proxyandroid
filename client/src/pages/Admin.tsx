@@ -58,6 +58,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
   const [editingClient, setEditingClient] = useState<any>(null);
   const [showCredits, setShowCredits] = useState<any>(null);
   const [showHistory, setShowHistory] = useState<any>(null);
+  const [showSessions, setShowSessions] = useState<any>(null);
   const utils = trpc.useUtils();
 
   const clientsQuery = trpc.admin.listClients.useQuery();
@@ -81,6 +82,20 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
 
   const toggleMutation = trpc.admin.toggleClientActive.useMutation({
     onSuccess: () => utils.admin.listClients.invalidate(),
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const sessionsQuery = trpc.admin.getClientActiveSessions.useQuery(
+    { credentialId: showSessions?.id || 0 },
+    { enabled: !!showSessions?.id }
+  );
+
+  const killSessionsMutation = trpc.admin.killClientSessions.useMutation({
+    onSuccess: () => {
+      toast.success("Todos os dispositivos desconectados");
+      setShowSessions(null);
+      utils.admin.listClients.invalidate();
+    },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -145,6 +160,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
               <TableHead>Status</TableHead>
               <TableHead>Gerações</TableHead>
               <TableHead>Login Limit</TableHead>
+              <TableHead>Online</TableHead>
               <TableHead>Dispositivo</TableHead>
               <TableHead>IP Vinculado</TableHead>
               <TableHead>Último Acesso</TableHead>
@@ -261,6 +277,15 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                   </span>
                 </TableCell>
                 <TableCell>
+                  <span className="text-xs font-medium">
+                    {client.activeSessionCount > 0 ? (
+                      <span className="text-green-500">{client.activeSessionCount} online</span>
+                    ) : (
+                      <span className="text-gray-500">0</span>
+                    )}
+                  </span>
+                </TableCell>
+                <TableCell>
                   {client.deviceFingerprint ? (
                     <div className="flex flex-col gap-0.5">
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -331,6 +356,33 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                         title="Histórico"
                       >
                         <History className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {true && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowSessions(client)}
+                        title="Dispositivos Online"
+                        className={client.activeSessionCount > 0 ? "text-green-500" : "text-gray-500"}
+                      >
+                        <Monitor className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {true && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm(`Desconectar TODOS os dispositivos de ${client.username}?`)) {
+                            killSessionsMutation.mutate({ credentialId: client.id });
+                          }
+                        }}
+                        title="Desconectar Todos"
+                        disabled={client.activeSessionCount === 0}
+                        className="text-orange-500 hover:text-orange-400"
+                      >
+                        <LogOut className="w-4 h-4" />
                       </Button>
                     )}
                     {true && (
@@ -414,6 +466,17 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
           transactions={historyQuery?.data || []}
           isLoading={historyQuery?.isLoading || false}
           onClose={() => setShowHistory(null)}
+        />
+      )}
+
+      {/* Active Sessions Dialog */}
+      {showSessions && (
+        <ActiveSessionsDialog
+          client={showSessions}
+          sessions={sessionsQuery?.data || []}
+          isLoading={sessionsQuery?.isLoading || false}
+          onKill={(credentialId: number) => killSessionsMutation.mutate({ credentialId })}
+          onClose={() => setShowSessions(null)}
         />
       )}
     </div>
@@ -1296,6 +1359,64 @@ function CreditsDialog({ client, currentAdmin, onClose, mutation }: any) {
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============ ACTIVE SESSIONS DIALOG ============
+function ActiveSessionsDialog({ client, sessions, isLoading, onKill, onClose }: any) {
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Monitor className="w-5 h-5 text-green-500" />
+            Dispositivos Online
+          </DialogTitle>
+          <DialogDescription>
+            {client.username} — Dispositivos conectados atualmente
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          {isLoading ? (
+            <p className="text-center text-muted-foreground py-8 flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Carregando...
+            </p>
+          ) : sessions.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">Nenhum dispositivo conectado.</p>
+          ) : (
+            <div className="space-y-2">
+              {sessions.map((session: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-white">Dispositivo #{idx + 1}</p>
+                    <p className="text-xs text-muted-foreground">IP: {session.deviceIP || 'Desconhecido'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Ativo desde: {session.lastActive ? new Date(session.lastActive).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : 'Desconhecido'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-500 border-green-500/30">Online</Badge>
+                  </div>
+                </div>
+              ))}
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full mt-4 gap-2"
+                onClick={() => onKill(client.id)}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Desconectar Todos
+              </Button>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

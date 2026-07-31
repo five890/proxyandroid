@@ -328,3 +328,27 @@ export async function getActiveSessions(credentialId: number) {
   if (!db) return [];
   return db.select().from(activeSessions).where(eq(activeSessions.credentialId, credentialId));
 }
+
+// Get distinct active session count (count unique fingerprints)
+export async function getDistinctActiveSessionCount(credentialId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.execute(
+    `SELECT COUNT(DISTINCT deviceFingerprint) as cnt FROM active_sessions WHERE credentialId = ?`,
+    [credentialId]
+  );
+  const rows = result[0] as any;
+  return Number(rows?.cnt || 0);
+}
+
+// Get all active sessions with client info
+export async function getAllActiveSessionsForClient(credentialId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Get distinct sessions grouped by fingerprint
+  const rows = await db.execute(
+    `SELECT deviceFingerprint, deviceIP, COUNT(*) as loginCount, MAX(createdAt) as lastActive FROM active_sessions WHERE credentialId = ? GROUP BY deviceFingerprint`,
+    [credentialId]
+  );
+  return rows[0] as any[];
+}

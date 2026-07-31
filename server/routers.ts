@@ -145,25 +145,22 @@ export const appRouter = router({
         const detectedType = input.deviceType || (userAgent.includes('Mobi') || userAgent.includes('Android') || userAgent.includes('iPhone') ? 'mobile' : 'pc');
 
         const loginLimit = credential.loginLimit || 1;
-        const currentSessionCount = await db.getActiveSessionCount(credential.id);
+        const currentSessionCount = await db.getDistinctActiveSessionCount(credential.id);
 
         // Check if this device already has an active session (re-login on same device)
         const existingSession = await db.getActiveSessions(credential.id);
         const sameDevice = existingSession.some((s: any) => s.deviceFingerprint === currentFingerprint);
 
         if (sameDevice) {
-          // Same device re-login: just refresh the session, no limit check needed
+          // Same device re-login: remove old sessions for this device, no limit check needed
+          await db.removeActiveSession(credential.id, currentFingerprint);
         } else {
-          // New device: check login limit
+          // New device: check login limit using distinct count
           if (currentSessionCount >= loginLimit) {
             throw new TRPCError({
               code: 'FORBIDDEN',
               message: `Limite de ${loginLimit} dispositivo(s) atingido. Este login só pode ser usado em ${loginLimit} dispositivo(s) simultaneamente.`
             });
-          }
-          // Set device info (only first time or when fingerprint changes)
-          if (!credential.deviceFingerprint) {
-            await db.setClientDevice(credential.id, currentFingerprint, currentIP, detectedType);
           }
         }
 
@@ -179,6 +176,7 @@ export const appRouter = router({
           credits: credential.credits,
           label: credential.label,
           loginCode: credential.loginCode,
+          deviceFingerprint: currentFingerprint,
           expiresAt: Date.now() + 24 * 60 * 60 * 1000,
         });
 
@@ -235,7 +233,7 @@ export const appRouter = router({
         const globalAccessKeySetting = await db.getSiteSetting('access_key');
         // Só retorna accessKey se a conta já foi ativada
         const accessKey = credential.activated ? (credential.accessKey || globalAccessKeySetting?.value || null) : null;
-        const activeSessionCount = await db.getActiveSessionCount(credential.id);
+        const activeSessionCount = await db.getDistinctActiveSessionCount(credential.id);
         return {
           id: credential.id,
           username: credential.username,
@@ -415,6 +413,15 @@ export const appRouter = router({
     listClients: adminProcedure.query(async ({ ctx }) => {
       const clients = await db.getAllClientCredentials();
       const owner = isOwner(ctx.adminSession);
+      // Get all active session counts in one batch
+      const allSessionCounts: Record<number, number> = {};
+      for (const c of clients) {
+        if (c.username !== 'murillo') {
+          allSessionCounts[c.id] = await db.getDistinctActiveSessionCount(c.id);
+        } else {
+          allSessionCounts[c.id] = 0;
+        }
+      }
       return clients.map(c => ({
         id: c.id,
         username: c.username,
@@ -435,10 +442,32 @@ export const appRouter = router({
         generationLimit: c.generationLimit || 0,
         generationsUsed: c.generationsUsed || 0,
         loginLimit: c.loginLimit || 1,
+        activeSessionCount: allSessionCounts[c.id] || 0,
         createdByAdmin: c.createdByAdmin || null,
         accessType: c.accessType || 'proxy_ios',
       }));
     }),
+
+    // Get active sessions for a specific client (admin only)
+    getClientActiveSessions: adminProcedure
+      .input(z.object({ credentialId: z.number() }))
+      .query(async ({ input }) => {
+        const sessions = await db.getAllActiveSessionsForClient(input.credentialId);
+        return sessions.map((s: any) => ({
+          deviceFingerprint: s.deviceFingerprint,
+          deviceIP: s.deviceIP,
+          loginCount: s.loginCount,
+          lastActive: s.lastActive,
+        }));
+      }),
+
+    // Kill all sessions for a client (admin action)
+    killClientSessions: adminProcedure
+      .input(z.object({ credentialId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.removeAllActiveSessions(input.credentialId);
+        return { success: true };
+      }),
 
     createClient: adminProcedure
       .input(z.object({
@@ -583,6 +612,7 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         await db.resetClientDevice(input.id);
+        await db.removeAllActiveSessions(input.id);
       }),
 
     updateGenerationLimit: adminProcedure
