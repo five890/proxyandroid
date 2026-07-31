@@ -56,7 +56,7 @@ export default function Dashboard() {
             setLocation("/login");
           }
         }
-      }, 500);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [clientMeQuery.data, clientMeQuery.isLoading, clientMeQuery.isFetching, isExpiredError, setLocation]);

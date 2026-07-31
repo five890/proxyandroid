@@ -188,7 +188,8 @@ export const appRouter = router({
           ...cookieOptions,
           maxAge: 24 * 60 * 60,
           httpOnly: false,
-          sameSite: 'lax',
+          sameSite: cookieOptions.secure ? 'none' : 'lax',
+          secure: cookieOptions.secure || false,
         });
 
         return {
@@ -326,7 +327,8 @@ export const appRouter = router({
             ...cookieOptions,
             maxAge: 7 * 24 * 60 * 60,
             httpOnly: false,
-            sameSite: 'lax',
+            sameSite: cookieOptions.secure ? 'none' : 'lax',
+            secure: cookieOptions.secure || false,
           });
           return { success: true, username: adminCred.username, role: 'admin' };
         }
@@ -351,7 +353,8 @@ export const appRouter = router({
             ...cookieOptions,
             maxAge: 7 * 24 * 60 * 60,
             httpOnly: false,
-            sameSite: 'lax',
+            sameSite: cookieOptions.secure ? 'none' : 'lax',
+            secure: cookieOptions.secure || false,
           });
           return { success: true, username: miniAdminCred.username, role: 'mini_admin' };
         }
