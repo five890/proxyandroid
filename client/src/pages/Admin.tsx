@@ -38,6 +38,7 @@ import {
   Upload,
   History,
   ShieldCheck,
+  Shield,
   LogOut,
   Loader2,
   Clock,
