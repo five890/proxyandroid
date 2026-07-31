@@ -559,6 +559,19 @@ function generateLoginCode(): string {
   return groups.join(' ');
 }
 
+function generateAccessKey(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const parts: string[] = [];
+  for (let p = 0; p < 4; p++) {
+    let part = '';
+    for (let i = 0; i < 5; i++) {
+      part += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    parts.push(part);
+  }
+  return parts.join('-');
+}
+
 // ============ DIALOGS ============
 function CreateClientDialog({ open, onClose, mutation }: any) {
   const [username, setUsername] = useState("");
@@ -569,8 +582,8 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   const [durationDays, setDurationDays] = useState("1");
   const [generationLimit, setGenerationLimit] = useState("0");
   const [accessType, setAccessType] = useState<"proxy_ios" | "proxy_android">("proxy_ios");
-  const [accessKeyInput, setAccessKeyInput] = useState("");
   const [generatedLoginCode, setGeneratedLoginCode] = useState("");
+  const [generatedAccessKey, setGeneratedAccessKey] = useState("");
   const [showCreated, setShowCreated] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<any>(null);
 
@@ -578,6 +591,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   const handleOpen = (isOpen: boolean) => {
     if (isOpen) {
       setGeneratedLoginCode(generateLoginCode());
+      setGeneratedAccessKey(generateAccessKey());
       setShowCreated(false);
       setCreatedCredentials(null);
     }
@@ -586,11 +600,6 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Proxy Android exige key obrigatória
-    if (accessType === 'proxy_android' && (!accessKeyInput || accessKeyInput.trim().length === 0)) {
-      toast.error("Proxy Android exige uma chave de acesso obrigatória.");
-      return;
-    }
     mutation.mutate(
       {
         username,
@@ -601,7 +610,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
         durationDays: parseInt(durationDays) || undefined,
         generationLimit: parseInt(generationLimit) || 0,
         accessType,
-        accessKey: accessType === 'proxy_android' ? accessKeyInput : undefined,
+        accessKey: accessType === 'proxy_android' ? generatedAccessKey : undefined,
       },
       {
         onSuccess: (data) => {
@@ -623,8 +632,8 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
           setDurationDays("1");
           setGenerationLimit("0");
           setAccessType("proxy_ios");
-          setAccessKeyInput("");
           setGeneratedLoginCode(generateLoginCode());
+          setGeneratedAccessKey(generateAccessKey());
         },
       }
     );
@@ -868,21 +877,40 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
             </p>
           </div>
 
-          {/* Chave de Acesso - obrigatória para Proxy Android */}
-          <div className="space-y-2">
-            <Label>
-              Chave de Acesso {accessType === 'proxy_android' && <span className="text-red-500">*</span>}
-            </Label>
-            <Input
-              value={accessKeyInput}
-              onChange={(e) => setAccessKeyInput(e.target.value)}
-              placeholder={accessType === 'proxy_android' ? 'Obrigatória para Proxy Android' : 'Opcional'}
-              className="bg-background/50"
-            />
-            {accessType === 'proxy_android' && !accessKeyInput.trim() && (
-              <p className="text-xs text-red-500">A chave de acesso é obrigatória para Proxy Android.</p>
-            )}
-          </div>
+          {/* Chave de Acesso - gerada automaticamente para Proxy Android */}
+          {accessType === 'proxy_android' && (
+            <div className="space-y-2">
+              <Label>Chave de Acesso (gerada automaticamente)</Label>
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <span className="text-sm font-mono font-bold text-green-400 flex-1 tracking-wide">
+                  {generatedAccessKey}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(generatedAccessKey, "Chave de acesso")}
+                  className="text-green-400 hover:bg-green-500/20"
+                  title="Copiar chave"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setGeneratedAccessKey(generateAccessKey())}
+                  className="text-green-400 hover:bg-green-500/20"
+                  title="Gerar nova chave"
+                >
+                  <Key className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Essa chave será enviada para o cliente usar no app Proxy Android.
+              </p>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>
