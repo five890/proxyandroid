@@ -271,6 +271,11 @@ export const appRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Você precisa de pelo menos 1 crédito para ativar sua conta' });
       }
 
+      // Verificar limite de gerações
+      if (credential.generationLimit > 0 && (credential.generationsUsed || 0) >= credential.generationLimit) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Você já atingiu o limite de gerações. Entre em contato com o administrador para renovar.' });
+      }
+
       const activationSetting = await db.getSiteSetting('activation_url');
       const globalAccessKeySetting = await db.getSiteSetting('access_key');
       
