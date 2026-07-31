@@ -412,15 +412,17 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         // Admins e o proprietário podem criar clientes
+        // Apenas o proprietário pode definir duração e limite de gerações
+        const owner = isOwner(ctx.adminSession);
         const role = 'client';
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
         }
         const { hash } = hashPassword(input.password);
-        const expiresAt = input.durationDays
-          ? new Date(Date.now() + input.durationDays * 24 * 60 * 60 * 1000)
-          : null;
+        // Admins comuns ficam limitados a 1 dia
+        const finalDurationDays = owner ? (input.durationDays || 1) : 1;
+        const expiresAt = new Date(Date.now() + finalDurationDays * 24 * 60 * 60 * 1000);
         const loginCode = generateLoginCode();
         // Aplicar accessKey global automaticamente se não for fornecida
         const globalAccessKeySetting = await db.getSiteSetting('access_key');
@@ -432,12 +434,12 @@ export const appRouter = router({
           credits: 1,
           active: true,
           role,
-          durationDays: input.durationDays || null,
+          durationDays: finalDurationDays,
           expiresAt: expiresAt,
           loginCode,
           activated: false,
           accessKey: finalAccessKey,
-          generationLimit: input.generationLimit || 0,
+          generationLimit: owner ? (input.generationLimit || 0) : 0,
           generationsUsed: 0,
         });
         return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey };
@@ -454,23 +456,25 @@ export const appRouter = router({
         generationLimit: z.number().int().min(0).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Admins e proprietário podem editar clientes
+        // Apenas o proprietário pode alterar duração e limite de gerações
+        const owner = isOwner(ctx.adminSession);
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing && existing.id !== input.id) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
         }
-        const expiresAt = input.durationDays
-          ? new Date(Date.now() + input.durationDays * 24 * 60 * 60 * 1000)
-          : undefined;
-        await db.updateClientCredential(input.id, {
+        // Admins comuns ficam limitados a 1 dia
+        const finalDurationDays = owner ? (input.durationDays || 1) : 1;
+        const expiresAt = new Date(Date.now() + finalDurationDays * 24 * 60 * 60 * 1000);
+        const updates: any = {
           username: input.username,
           label: input.label || null,
           active: input.active,
-          durationDays: input.durationDays || null,
-          ...(expiresAt !== undefined ? { expiresAt } : {}),
+          durationDays: finalDurationDays,
+          expiresAt,
           ...(input.accessKey !== undefined ? { accessKey: input.accessKey || null } : {}),
-          ...(input.generationLimit !== undefined ? { generationLimit: input.generationLimit } : {}),
-        });
+          ...(input.generationLimit !== undefined && owner ? { generationLimit: input.generationLimit } : {}),
+        };
+        await db.updateClientCredential(input.id, updates);
       }),
 
     updateClientPassword: adminProcedure
