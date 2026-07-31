@@ -1554,31 +1554,39 @@ function Admin() {
               <Users className="w-4 h-4" />
               Clientes
             </TabsTrigger>
-            <TabsTrigger value="files" className="gap-2">
-              <FileUp className="w-4 h-4" />
-              Arquivos
-            </TabsTrigger>
-            <TabsTrigger value="mini-admins" className="gap-2">
-              <ShieldCheck className="w-4 h-4" />
-              Admins
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2">
-              <Key className="w-4 h-4" />
-              Configurações
-            </TabsTrigger>
+            {adminMeQuery.data?.username === 'murillo' && (
+              <>
+                <TabsTrigger value="files" className="gap-2">
+                  <FileUp className="w-4 h-4" />
+                  Arquivos
+                </TabsTrigger>
+                <TabsTrigger value="mini-admins" className="gap-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  Admins
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="gap-2">
+                  <Key className="w-4 h-4" />
+                  Configurações
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
           <TabsContent value="clients">
             <ClientManagement currentAdmin={adminMeQuery.data} />
           </TabsContent>
-          <TabsContent value="files">
-            <FileManagement />
-          </TabsContent>
-          <TabsContent value="mini-admins">
-            <MiniAdminManagement />
-          </TabsContent>
-          <TabsContent value="settings">
-            <SettingsManagement />
-          </TabsContent>
+          {adminMeQuery.data?.username === 'murillo' && (
+            <>
+              <TabsContent value="files">
+                <FileManagement />
+              </TabsContent>
+              <TabsContent value="mini-admins">
+                <MiniAdminManagement />
+              </TabsContent>
+              <TabsContent value="settings">
+                <SettingsManagement />
+              </TabsContent>
+            </>
+          )}
         </Tabs>
       </main>
     </div>
