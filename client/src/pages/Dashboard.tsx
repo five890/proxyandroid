@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -78,9 +84,16 @@ export default function Dashboard() {
   });
 
   // Activate account mutation
+  const [activatedAccessKey, setActivatedAccessKey] = React.useState<string | null>(null);
+  const [showAccessKey, setShowAccessKey] = React.useState(false);
+
   const activateMutation = trpc.auth.activateAccount.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Conta ativada com sucesso! Seus arquivos agora estão disponíveis.");
+      if (data.accessKey) {
+        setActivatedAccessKey(data.accessKey);
+        setShowAccessKey(true);
+      }
       utils.auth.clientMe.invalidate();
       utils.clientFiles.files.invalidate();
     },
@@ -536,6 +549,42 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Access Key Dialog after activation */}
+      <Dialog open={showAccessKey} onOpenChange={setShowAccessKey}>
+        <DialogContent className="bg-gray-950 border-gray-800 max-w-sm mx-4">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Key className="w-5 h-5 text-red-500" />
+              Chave de Acesso Ativada
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+              <p className="text-xs text-gray-400 mb-2">Use esta chave para acessar o serviço:</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm text-red-400 font-mono break-all">{activatedAccessKey}</code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    navigator.clipboard.writeText(activatedAccessKey || '');
+                    toast.success("Chave copiada!");
+                  }}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <Button
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => setShowAccessKey(false)}
+            >
+              Entendi
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="max-w-6xl mx-auto px-6 py-6 text-center border-t border-red-900/20">

@@ -239,6 +239,10 @@ export const appRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Você precisa de pelo menos 1 crédito para ativar sua conta' });
       }
 
+      const activationSetting = await db.getSiteSetting('activation_url');
+      const globalAccessKeySetting = await db.getSiteSetting('access_key');
+      const accessKey = credential.accessKey || globalAccessKeySetting?.value || null;
+
       await db.updateClientCredential(credential.id, {
         activated: true,
         credits: credential.credits - 1,
@@ -250,7 +254,7 @@ export const appRouter = router({
         reason: 'Ativação de conta - Key utilizada',
       });
 
-      return { success: true, remainingCredits: credential.credits - 1 };
+      return { success: true, remainingCredits: credential.credits - 1, accessKey };
     }),
 
     // ============ ADMIN AUTH ============

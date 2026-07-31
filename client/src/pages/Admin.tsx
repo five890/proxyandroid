@@ -479,7 +479,7 @@ function FileManagement() {
 
       {/* Upload Dialog */}
       <Dialog open={showUpload} onOpenChange={setShowUpload}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Enviar Arquivo</DialogTitle>
             <DialogDescription>
@@ -601,7 +601,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   if (showCreated && createdCredentials) {
     return (
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="bg-card border-border max-w-md">
+        <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Key className="w-5 h-5 text-primary" />
@@ -699,7 +699,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogContent className="bg-card border-border">
+      <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto sm:max-h-[90vh] max-w-md">
         <DialogHeader>
           <DialogTitle>Criar Novo Cliente</DialogTitle>
           <DialogDescription>
@@ -888,7 +888,7 @@ function EditClientDialog({ client, onClose, mutation }: any) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border">
+      <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Cliente</DialogTitle>
           <DialogDescription>
@@ -1067,7 +1067,7 @@ function CreditsDialog({ client, onClose, mutation }: any) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border">
+      <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Gerenciar Créditos</DialogTitle>
           <DialogDescription>
@@ -1250,7 +1250,7 @@ function MiniAdminManagement() {
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={(open) => { if (!open) setShowCreate(false); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
