@@ -50,8 +50,15 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        const headers = new Headers(init?.headers);
+        // Also send session from localStorage as fallback
+        const localSession = localStorage.getItem("client_session");
+        if (localSession) {
+          headers.set("x-client-session", localSession);
+        }
         return globalThis.fetch(input, {
           ...(init ?? {}),
+          headers,
           credentials: "include",
         });
       },

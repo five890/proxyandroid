@@ -41,9 +41,19 @@ export default function Login() {
       // Clear any expired markers
       sessionStorage.removeItem("login_expired");
       sessionStorage.removeItem("dashboard_redirect_attempts");
+      // Save session to localStorage as fallback for cookie issues
+      const sessionData = JSON.stringify({
+        credentialId: data.credential.id,
+        username: data.credential.username,
+        credits: data.credential.credits,
+        label: data.credential.label,
+        loginCode: data.credential.loginCode,
+        deviceFingerprint: data.credential.deviceFingerprint,
+        expiresAt: data.credential.expiresAt,
+      });
+      localStorage.setItem("client_session", sessionData);
       await utils.auth.clientMe.invalidate();
       toast.success(`Bem-vindo, ${data.credential.username}!`);
-      // Small delay to let cookie be set before navigating
       setTimeout(() => {
         setLocation("/dashboard");
       }, 500);

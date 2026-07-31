@@ -83,6 +83,8 @@ export default function Dashboard() {
   // Logout
   const logoutMutation = trpc.auth.clientLogout.useMutation({
     onSuccess: () => {
+      localStorage.removeItem("client_session");
+      sessionStorage.removeItem("dashboard_redirect_attempts");
       setLocation("/login");
     },
   });

@@ -200,6 +200,8 @@ export const appRouter = router({
             credits: credential.credits,
             label: credential.label,
             loginCode: credential.loginCode,
+            deviceFingerprint: currentFingerprint,
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
           }
         };
       }),
@@ -219,7 +221,8 @@ export const appRouter = router({
     }),
 
     clientMe: publicProcedure.query(async ({ ctx }) => {
-      const sessionCookie = ctx.req.cookies?.client_session;
+      // Try cookie first, then fallback to header (localStorage)
+      const sessionCookie = ctx.req.cookies?.client_session || ctx.req.headers["x-client-session"];
       if (!sessionCookie) return null;
       try {
         const session = JSON.parse(sessionCookie);
