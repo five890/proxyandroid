@@ -48,10 +48,14 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
+  // In production on Railway, the server is compiled to dist/index.js
+  // and the frontend is built to dist/public by Vite.
+  // import.meta.dirname in production = process.cwd()/dist
+  // So we resolve relative to process.cwd() for reliability.
   const distPath =
     process.env.NODE_ENV === "development"
-      ? path.resolve(import.meta.dirname, "../..", "dist", "public")
-      : path.resolve(import.meta.dirname, "public");
+      ? path.resolve(process.cwd(), "dist", "public")
+      : path.resolve(process.cwd(), "dist", "public");
   if (!fs.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
