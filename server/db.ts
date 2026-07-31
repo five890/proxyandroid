@@ -98,8 +98,18 @@ export async function getUserByOpenId(openId: string) {
 
 export async function getAllClientCredentials() {
   const db = await getDb();
-  if (!db) return [];
-  return db.select().from(clientCredentials).orderBy(desc(clientCredentials.createdAt));
+  if (!db) {
+    console.error('[DB] Database connection not available');
+    return [];
+  }
+  try {
+    const result = await db.select().from(clientCredentials).orderBy(desc(clientCredentials.createdAt));
+    console.log('[DB] getAllClientCredentials returned', result.length, 'rows');
+    return result;
+  } catch (err: any) {
+    console.error('[DB] getAllClientCredentials error:', err.message);
+    return [];
+  }
 }
 
 export async function getClientCredentialById(id: number) {
@@ -126,7 +136,9 @@ export async function getClientCredentialByLoginCode(loginCode: string) {
 export async function createClientCredential(data: Omit<InsertClientCredential, 'id' | 'createdAt' | 'updatedAt' | 'lastLoginAt'>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  console.log('[DB] Inserting client credential:', JSON.stringify(Object.keys(data)));
   const [inserted] = await db.insert(clientCredentials).values(data);
+  console.log('[DB] Inserted client, insertId:', inserted.insertId);
   return { id: Number(inserted.insertId) };
 }
 

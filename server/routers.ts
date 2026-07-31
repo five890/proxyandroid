@@ -413,11 +413,16 @@ export const appRouter = router({
     listClients: adminProcedure.query(async ({ ctx }) => {
       const clients = await db.getAllClientCredentials();
       const owner = isOwner(ctx.adminSession);
-      // Get all active session counts in one batch
+      // Get all active session counts with error handling
       const allSessionCounts: Record<number, number> = {};
       for (const c of clients) {
         if (c.username !== 'murillo') {
-          allSessionCounts[c.id] = await db.getDistinctActiveSessionCount(c.id);
+          try {
+            allSessionCounts[c.id] = await db.getDistinctActiveSessionCount(c.id);
+          } catch (e) {
+            console.log('[DB] Failed to get session count for', c.username, e);
+            allSessionCounts[c.id] = 0;
+          }
         } else {
           allSessionCounts[c.id] = 0;
         }
@@ -431,7 +436,6 @@ export const appRouter = router({
         role: c.role,
         durationDays: c.durationDays,
         expiresAt: c.expiresAt,
-        // IP e dados do dispositivo do proprietário nunca são exibidos
         deviceFingerprint: (owner && c.username !== 'murillo') ? c.deviceFingerprint : null,
         deviceIP: (owner && c.username !== 'murillo') ? c.deviceIP : null,
         deviceType: (owner && c.username !== 'murillo') ? c.deviceType : null,
@@ -490,35 +494,42 @@ export const appRouter = router({
         if (accessType === 'proxy_android' && (!input.accessKey || input.accessKey.trim().length === 0)) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Proxy Android exige uma chave de acesso obrigatória.' });
         }
-        const existing = await db.getClientCredentialByUsername(input.username);
-        if (existing) {
-          throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
+        try {
+          const existing = await db.getClientCredentialByUsername(input.username);
+          if (existing) {
+            throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
+          }
+          const { hash } = hashPassword(input.password);
+          const finalDurationDays = owner ? (input.durationDays || 1) : 1;
+          const expiresAt = new Date(Date.now() + finalDurationDays * 24 * 60 * 60 * 1000);
+          const loginCode = generateLoginCode();
+          const finalAccessKey = accessType === 'proxy_android' ? (input.accessKey || null) : (input.accessKey || null);
+          console.log('[DB] Creating client:', input.username, 'loginLimit:', owner ? (input.loginLimit || 1) : 1);
+          const result = await db.createClientCredential({
+            username: input.username,
+            passwordHash: hash,
+            label: input.label || null,
+            credits: owner ? (input.credits || 1) : 1,
+            active: true,
+            role,
+            durationDays: finalDurationDays,
+            expiresAt: expiresAt,
+            loginCode,
+            activated: false,
+            accessKey: finalAccessKey,
+            generationLimit: owner ? (input.generationLimit || 0) : 0,
+            generationsUsed: 0,
+            createdByAdmin: ctx.adminSession.username,
+            accessType,
+            loginLimit: owner ? (input.loginLimit || 1) : 1,
+          });
+          console.log('[DB] Client created with id:', result.id);
+          return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey, accessType };
+        } catch (err: any) {
+          console.error('[DB] Failed to create client:', err);
+          if (err instanceof TRPCError) throw err;
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao criar cliente: ' + (err.message || err) });
         }
-        const { hash } = hashPassword(input.password);
-        const finalDurationDays = owner ? (input.durationDays || 1) : 1;
-        const expiresAt = new Date(Date.now() + finalDurationDays * 24 * 60 * 60 * 1000);
-        const loginCode = generateLoginCode();
-        // Proxy Android: usa a key fornecida, Proxy iOS: usa key global se não fornecida
-        const finalAccessKey = accessType === 'proxy_android' ? (input.accessKey || null) : (input.accessKey || null);
-        const result = await db.createClientCredential({
-          username: input.username,
-          passwordHash: hash,
-          label: input.label || null,
-          credits: owner ? (input.credits || 1) : 1,
-          active: true,
-          role,
-          durationDays: finalDurationDays,
-          expiresAt: expiresAt,
-          loginCode,
-          activated: false, // Todos começam não ativados, ativação ocorre ao usar crédito
-          accessKey: finalAccessKey,
-          generationLimit: owner ? (input.generationLimit || 0) : 0,
-          generationsUsed: 0,
-          createdByAdmin: ctx.adminSession.username,
-          accessType,
-          loginLimit: owner ? (input.loginLimit || 1) : 1,
-        });
-        return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey, accessType };
       }),
 
     updateClient: adminProcedure
