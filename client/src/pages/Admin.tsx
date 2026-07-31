@@ -570,13 +570,14 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
         generationLimit: parseInt(generationLimit) || 0,
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setCreatedCredentials({
             username,
             password,
             loginCode: generatedLoginCode,
             label: label || undefined,
             durationDays: parseInt(durationDays) || 1,
+            accessKey: data?.accessKey || null,
           });
           setShowCreated(true);
           setUsername("");
@@ -662,6 +663,24 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               <p className="text-sm font-medium text-foreground">{createdCredentials.password}</p>
             </div>
 
+            {/* Access Key */}
+            {createdCredentials.accessKey && (
+              <div className="p-3 rounded-lg bg-gold/10 border border-gold/20">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-gold">Chave de Acesso</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(createdCredentials.accessKey, "Chave de acesso")}
+                    className="h-5 px-2 text-xs text-gold"
+                  >
+                    <Copy className="w-3 h-3 mr-1" /> Copiar
+                  </Button>
+                </div>
+                <p className="text-sm font-mono text-gold font-semibold">{createdCredentials.accessKey}</p>
+              </div>
+            )}
+
             {/* Info */}
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <p className="text-xs text-amber-500">
@@ -675,7 +694,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const all = `Login: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}`;
+                  const all = `Login: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}${createdCredentials.accessKey ? `\nChave: ${createdCredentials.accessKey}` : ""}`;
                   copyToClipboard(all, "Todas as credenciais");
                 }}
                 className="w-full gap-2"
@@ -1383,6 +1402,7 @@ function SettingsManagement() {
   const utils = trpc.useUtils();
   const settingsQuery = trpc.admin.getSettings.useQuery();
   const [activationUrl, setActivationUrl] = useState("https://freefireproxy.com.br/ativar/");
+  const [globalAccessKey, setGlobalAccessKey] = useState("");
   const updateMutation = trpc.admin.updateSettings.useMutation({
     onSuccess: () => {
       toast.success("Configurações atualizadas com sucesso");
@@ -1396,11 +1416,18 @@ function SettingsManagement() {
       if (settingsQuery.data.activation_url) {
         setActivationUrl(settingsQuery.data.activation_url);
       }
+      if (settingsQuery.data.access_key) {
+        setGlobalAccessKey(settingsQuery.data.access_key);
+      }
     }
   }, [settingsQuery.data]);
 
   const handleSaveUrl = () => {
     updateMutation.mutate({ activationUrl });
+  };
+
+  const handleSaveAccessKey = () => {
+    updateMutation.mutate({ accessKey: globalAccessKey });
   };
 
   return (
@@ -1447,6 +1474,39 @@ function SettingsManagement() {
             >
               {activationUrl}
             </a>
+          </div>
+        )}
+      </Card>
+
+      {/* Global Access Key */}
+      <Card className="p-6">
+        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-gold" />
+          Chave de Acesso Global
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Esta chave será aplicada automaticamente em todos os clientes criados. Quando o cliente ativar a conta, esta chave será exibida para ele usar no serviço.
+        </p>
+        <div className="flex gap-3">
+          <Input
+            value={globalAccessKey}
+            onChange={(e) => setGlobalAccessKey(e.target.value)}
+            placeholder="Ex: SHB-XXXX-XXXX-XXXX"
+            className="flex-1 font-mono"
+          />
+          <Button
+            onClick={handleSaveAccessKey}
+            disabled={updateMutation.isPending}
+            className="bg-gold hover:bg-gold/90 text-black gap-2 font-semibold"
+          >
+            {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Salvar
+          </Button>
+        </div>
+        {globalAccessKey && (
+          <div className="mt-4 p-3 rounded-lg bg-gold/5 border border-gold/10">
+            <p className="text-xs text-muted-foreground mb-1">Chave que será aplicada nos novos clientes:</p>
+            <p className="text-sm text-gold font-mono font-semibold">{globalAccessKey}</p>
           </div>
         )}
       </Card>

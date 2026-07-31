@@ -416,6 +416,9 @@ export const appRouter = router({
           ? new Date(Date.now() + input.durationDays * 24 * 60 * 60 * 1000)
           : null;
         const loginCode = generateLoginCode();
+        // Aplicar accessKey global automaticamente se não for fornecida
+        const globalAccessKeySetting = await db.getSiteSetting('access_key');
+        const finalAccessKey = input.accessKey || globalAccessKeySetting?.value || null;
         const result = await db.createClientCredential({
           username: input.username,
           passwordHash: hash,
@@ -427,11 +430,11 @@ export const appRouter = router({
           expiresAt: expiresAt,
           loginCode,
           activated: false,
-          accessKey: input.accessKey || null,
+          accessKey: finalAccessKey,
           generationLimit: input.generationLimit || 0,
           generationsUsed: 0,
         });
-        return { id: result.id, loginCode, username: input.username, accessKey: input.accessKey || null };
+        return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey };
       }),
 
     updateClient: adminProcedure
