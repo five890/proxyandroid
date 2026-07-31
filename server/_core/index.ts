@@ -71,9 +71,25 @@ async function createTables() {
       accessKey TEXT,
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
       updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-      lastLoginAt TIMESTAMP NULL
+      lastLoginAt TIMESTAMP NULL,
+      generationLimit INT NOT NULL DEFAULT 0,
+      generationsUsed INT NOT NULL DEFAULT 0
     )
   `);
+
+  // Alter table to add new columns if they don't exist
+  try {
+    await connection.query(`ALTER TABLE client_credentials ADD COLUMN generationLimit INT NOT NULL DEFAULT 0`);
+    console.log("[DB] Added generationLimit column");
+  } catch (e: any) {
+    if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] generationLimit already exists");
+  }
+  try {
+    await connection.query(`ALTER TABLE client_credentials ADD COLUMN generationsUsed INT NOT NULL DEFAULT 0`);
+    console.log("[DB] Added generationsUsed column");
+  } catch (e: any) {
+    if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] generationsUsed already exists");
+  }
 
   // files table
   await connection.query(`
