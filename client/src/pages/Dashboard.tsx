@@ -46,18 +46,23 @@ export default function Dashboard() {
     (clientMeError?.message?.includes("expirou") || clientMeError?.message?.includes("Expirou"));
 
   useEffect(() => {
-    if (!clientMeQuery.isLoading && !clientMeQuery.isFetching && clientMeQuery.data === null) {
-      const timer = setTimeout(() => {
-        if (!clientMeQuery.data) {
-          const isExpired = sessionStorage.getItem("login_expired") === "true" || isExpiredError;
-          if (isExpired) {
-            setLocation("/expired");
-          } else {
-            setLocation("/login");
-          }
-        }
-      }, 1500);
-      return () => clearTimeout(timer);
+    if (clientMeQuery.isLoading || clientMeQuery.isFetching) return;
+    if (clientMeQuery.data !== null) return;
+    
+    // Only redirect after multiple failed attempts (3 attempts = ~90s)
+    const attemptKey = "dashboard_redirect_attempts";
+    const attempts = parseInt(sessionStorage.getItem(attemptKey) || "0");
+    
+    if (attempts >= 3) {
+      sessionStorage.removeItem(attemptKey);
+      const isExpired = sessionStorage.getItem("login_expired") === "true" || isExpiredError;
+      if (isExpired) {
+        setLocation("/expired");
+      } else {
+        setLocation("/login");
+      }
+    } else {
+      sessionStorage.setItem(attemptKey, String(attempts + 1));
     }
   }, [clientMeQuery.data, clientMeQuery.isLoading, clientMeQuery.isFetching, isExpiredError, setLocation]);
 
@@ -152,7 +157,17 @@ export default function Dashboard() {
     );
   }
 
-  if (!session) return null;
+  if (!session) {
+    // Still loading or session not yet available - keep showing loading
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black px-4">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+          <p className="text-gray-400 text-sm">Carregando sessão...</p>
+        </div>
+      </div>
+    );
+  }
 
   // ============ ACTIVATION SCREEN ============
   if (!session.activated) {

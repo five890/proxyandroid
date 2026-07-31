@@ -38,10 +38,15 @@ export default function Login() {
   const utils = trpc.useUtils();
   const loginMutation = trpc.auth.clientLogin.useMutation({
     onSuccess: async (data) => {
+      // Clear any expired markers
+      sessionStorage.removeItem("login_expired");
+      sessionStorage.removeItem("dashboard_redirect_attempts");
       await utils.auth.clientMe.invalidate();
-      await utils.auth.clientMe.refetch();
       toast.success(`Bem-vindo, ${data.credential.username}!`);
-      setLocation("/dashboard");
+      // Small delay to let cookie be set before navigating
+      setTimeout(() => {
+        setLocation("/dashboard");
+      }, 500);
     },
     onError: (error) => {
       const errorMsg = error.message || "Erro ao fazer login";
