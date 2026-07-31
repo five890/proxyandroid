@@ -8,6 +8,25 @@ import * as db from "./db";
 import { hashPassword, verifyPassword, hashFingerprint, generateLoginCode } from "./auth-utils";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
+// ============================================================
+// PROPRIETÁRIO: O único usuário que tem poder total é "murillo"
+// Ninguém mais pode criar/editar/excluir admins ou ver IPs
+// ============================================================
+const OWNER_USERNAME = "murillo";
+
+function isOwner(session: any): boolean {
+  return session && session.username === OWNER_USERNAME;
+}
+
+function requireOwner(ctx: any): void {
+  if (!isOwner(ctx.adminSession)) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Acesso restrito ao proprietário. Esta ação só pode ser feita por ' + OWNER_USERNAME,
+    });
+  }
+}
+
 // Client session middleware - validates client_session cookie
 const clientSessionProcedure = publicProcedure.use(async ({ ctx, next }) => {
   const sessionCookie = ctx.req.cookies?.client_session;
@@ -23,9 +42,7 @@ const clientSessionProcedure = publicProcedure.use(async ({ ctx, next }) => {
     if (!credential || !credential.active) {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta inválida ou desativada' });
     }
-    // Check if the credential itself has expired (in addition to session expiry)
     if (credential.expiresAt && new Date(credential.expiresAt) < new Date()) {
-      // Auto-deactivate the credential to prevent further access
       await db.updateClientCredentialActive(credential.id, false);
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Este login expirou. Entre em contato com o administrador para renovar.' });
     }
@@ -57,7 +74,7 @@ const adminSessionProcedure = publicProcedure.use(async ({ ctx, next }) => {
 // Admin-only procedure (uses admin_session)
 const adminProcedure = adminSessionProcedure;
 
-// Mini admin session middleware - validates admin_session cookie with mini_admin role
+// Mini admin session middleware
 const miniAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
   const sessionCookie = ctx.req.cookies?.admin_session;
   if (!sessionCookie) {
@@ -68,7 +85,6 @@ const miniAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
     if (session.expiresAt && session.expiresAt < Date.now()) {
       throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Sessão expirada' });
     }
-    // Only allow mini_admin role - full admins should use /admin panel
     if (session.role !== 'mini_admin') {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso restrito a mini administradores' });
     }
@@ -101,7 +117,6 @@ export const appRouter = router({
         loginCode: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Try to find credential by username first, then by loginCode
         let credential = await db.getClientCredentialByUsername(input.username);
         if (!credential && input.loginCode) {
           credential = await db.getClientCredentialByLoginCode(input.loginCode);
@@ -112,7 +127,6 @@ export const appRouter = router({
         if (!credential.active) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Esta conta está desativada. Entre em contato com o administrador.' });
         }
-        // Check if account has expired
         if (credential.expiresAt && new Date(credential.expiresAt) < new Date()) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Este login expirou. Entre em contato com o administrador para renovar.' });
         }
@@ -120,7 +134,7 @@ export const appRouter = router({
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas' });
         }
 
-        // Device lock check (fingerprint + IP)
+        // Device lock check
         const currentFingerprint = hashFingerprint([input.deviceFingerprint]);
         if (credential.deviceFingerprint) {
           if (credential.deviceFingerprint !== currentFingerprint) {
@@ -130,14 +144,12 @@ export const appRouter = router({
             });
           }
         } else {
-          // Lock device on first access
           const clientIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
             ? ctx.req.headers['x-forwarded-for'][0]
             : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';
           await db.setClientDevice(credential.id, currentFingerprint, clientIP);
         }
 
-        // Always update last login IP
         const currentIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
           ? ctx.req.headers['x-forwarded-for'][0]
           : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';
@@ -187,21 +199,16 @@ export const appRouter = router({
         if (session.expiresAt && session.expiresAt < Date.now()) {
           return null;
         }
-        // Fetch fresh data from database so credits are always up-to-date
         const credential = await db.getClientCredentialById(session.credentialId);
         if (!credential || !credential.active) {
           return null;
         }
-        // Check if account has expired
         if (credential.expiresAt && new Date(credential.expiresAt) < new Date()) {
-          // Auto-deactivate
           await db.updateClientCredentialActive(credential.id, false);
           return null;
         }
-        // Get activation URL and global access key from settings
         const activationSetting = await db.getSiteSetting('activation_url');
         const globalAccessKeySetting = await db.getSiteSetting('access_key');
-        // Use individual accessKey first, fall back to global access key
         const accessKey = credential.accessKey || globalAccessKeySetting?.value || null;
         return {
           id: credential.id,
@@ -220,7 +227,6 @@ export const appRouter = router({
       }
     }),
 
-    // Activate account using credit - client uses their credit to activate
     activateAccount: clientSessionProcedure.mutation(async ({ ctx }) => {
       const credential = await db.getClientCredentialById(ctx.clientSession.credentialId);
       if (!credential) {
@@ -233,13 +239,11 @@ export const appRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Você precisa de pelo menos 1 crédito para ativar sua conta' });
       }
 
-      // Activate the account
       await db.updateClientCredential(credential.id, {
         activated: true,
         credits: credential.credits - 1,
       });
 
-      // Record credit transaction
       await db.createCreditTransaction({
         credentialId: credential.id,
         amount: -1,
@@ -324,6 +328,7 @@ export const appRouter = router({
           id: session.id,
           username: session.username,
           role: session.role || 'admin',
+          isOwner: session.username === OWNER_USERNAME,
         };
       } catch {
         return null;
@@ -331,71 +336,7 @@ export const appRouter = router({
     }),
   }),
 
-  // ============ CLIENT PROCEDURES (protected by session) ============
-  clientFiles: router({
-    files: clientSessionProcedure.query(async ({ ctx }) => {
-      // Check activation status
-      const credential = await db.getClientCredentialById(ctx.clientSession.credentialId);
-      if (!credential) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta não encontrada.' });
-      }
-      if (!credential.activated) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta não ativada. Use seu crédito para ativar o acesso primeiro.' });
-      }
-      if (credential.credits <= 0) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem créditos suficientes para acessar os arquivos.' });
-      }
-
-      const allFiles = await db.getAllFiles();
-      return allFiles.map(f => ({
-        id: f.id,
-        filename: f.filename,
-        originalName: f.originalName,
-        fileSize: f.fileSize,
-        mimeType: f.mimeType,
-        description: f.description,
-        createdAt: f.createdAt,
-      }));
-    }),
-
-    downloadFile: clientSessionProcedure
-      .input(z.object({ fileId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        // Check activation and credits from DB to prevent bypass
-        const credential = await db.getClientCredentialById(ctx.clientSession.credentialId);
-        if (!credential) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta não encontrada.' });
-        }
-        if (!credential.activated) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Conta não ativada. Use seu crédito para ativar o acesso primeiro.' });
-        }
-        if (credential.credits <= 0) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Sem créditos suficientes para download.' });
-        }
-
-        const clientIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
-          ? ctx.req.headers['x-forwarded-for'][0]
-          : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';
-
-        const file = await db.getFileById(input.fileId);
-        if (!file) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Arquivo não encontrado' });
-        }
-
-        // Record download
-        await db.createDownloadHistory({
-          credentialId: ctx.clientSession.credentialId,
-          fileId: file.id,
-          ip: clientIP,
-        });
-
-        // Get signed URL for download
-        const signedUrl = await storageGetSignedUrl(file.s3Key);
-        return { downloadUrl: signedUrl, originalName: file.originalName };
-      }),
-  }),
-
-    // ============ ADMIN PROCEDURES ============
+  // ============ ADMIN PROCEDURES ============
   admin: router({
     // Settings CRUD
     getSettings: adminProcedure.query(async () => {
@@ -419,9 +360,12 @@ export const appRouter = router({
         }
         return { success: true };
       }),
+
     // Clients CRUD
-    listClients: adminProcedure.query(async () => {
+    // PROTECTED: IPs only visible to owner
+    listClients: adminProcedure.query(async ({ ctx }) => {
       const clients = await db.getAllClientCredentials();
+      const owner = isOwner(ctx.adminSession);
       return clients.map(c => ({
         id: c.id,
         username: c.username,
@@ -431,10 +375,11 @@ export const appRouter = router({
         role: c.role,
         durationDays: c.durationDays,
         expiresAt: c.expiresAt,
-        deviceFingerprint: c.deviceFingerprint,
-        deviceIP: c.deviceIP,
-        deviceLockedAt: c.deviceLockedAt,
-        lastLoginAt: c.lastLoginAt,
+        // IP só visível para o proprietário
+        deviceFingerprint: owner ? c.deviceFingerprint : null,
+        deviceIP: owner ? c.deviceIP : null,
+        deviceLockedAt: owner ? c.deviceLockedAt : null,
+        lastLoginAt: owner ? c.lastLoginAt : null,
         createdAt: c.createdAt,
         loginCode: c.loginCode,
       }));
@@ -450,8 +395,9 @@ export const appRouter = router({
         durationDays: z.number().int().min(1).optional(),
         accessKey: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
-        // Only allow creating clients, not admins
+      .mutation(async ({ ctx, input }) => {
+        // Só o proprietário pode criar clientes
+        requireOwner(ctx);
         const role = 'client';
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
@@ -461,13 +407,12 @@ export const appRouter = router({
         const expiresAt = input.durationDays
           ? new Date(Date.now() + input.durationDays * 24 * 60 * 60 * 1000)
           : null;
-        // Generate unique login code (e.g., 0930 9202 8377)
         const loginCode = generateLoginCode();
         const result = await db.createClientCredential({
           username: input.username,
           passwordHash: hash,
           label: input.label || null,
-          credits: 1, // 1 crédito para ativação
+          credits: 1,
           active: true,
           role,
           durationDays: input.durationDays || null,
@@ -489,11 +434,8 @@ export const appRouter = router({
         accessKey: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Only the owner 'murillo' can edit admin accounts
-        const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
-        }
+        // Só o proprietário pode editar clientes
+        requireOwner(ctx);
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing && existing.id !== input.id) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
@@ -517,11 +459,7 @@ export const appRouter = router({
         password: z.string().min(6),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Only the owner 'murillo' can edit admin accounts
-        const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
-        }
+        requireOwner(ctx);
         const { hash } = hashPassword(input.password);
         await db.updateClientCredential(input.id, { passwordHash: hash });
       }),
@@ -529,11 +467,7 @@ export const appRouter = router({
     regenerateLoginCode: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        // Only the owner 'murillo' can edit admin accounts
-        const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
-        }
+        requireOwner(ctx);
         const loginCode = generateLoginCode();
         await db.updateClientCredential(input.id, { loginCode });
         return { loginCode };
@@ -542,11 +476,7 @@ export const appRouter = router({
     toggleClientActive: adminProcedure
       .input(z.object({ id: z.number(), active: z.boolean() }))
       .mutation(async ({ ctx, input }) => {
-        // Only the owner 'murillo' can edit admin accounts
-        const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
-        }
+        requireOwner(ctx);
         await db.updateClientCredentialActive(input.id, input.active);
       }),
 
@@ -557,12 +487,10 @@ export const appRouter = router({
         reason: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         const credential = await db.getClientCredentialById(input.id);
         if (!credential) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
-        }
-        if (credential.role === 'admin' && ctx.adminSession.username !== 'murillo') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
         }
         const newCredits = credential.credits + input.amount;
         if (newCredits < 0) {
@@ -580,19 +508,20 @@ export const appRouter = router({
     resetClientDevice: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const target = await db.getClientCredentialById(input.id);
-        if (target && target.role === 'admin' && ctx.adminSession.username !== 'murillo') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode modificar contas de administrador' });
-        }
+        requireOwner(ctx);
         await db.resetClientDevice(input.id);
       }),
 
     deleteClient: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         const client = await db.getClientCredentialById(input.id);
         if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
-        if (client.role === 'admin' && ctx.adminSession.username !== 'murillo') throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode excluir um administrador' });
+        // Proteção: não pode deletar o próprio proprietário
+        if (client.username === OWNER_USERNAME) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Impossível excluir o proprietário' });
+        }
         await db.deleteClientCredential(input.id);
       }),
 
@@ -639,9 +568,71 @@ export const appRouter = router({
         await db.deleteFileRecord(input.id);
       }),
 
-    // Mini admin management (admin only)
-    listMiniAdmins: adminProcedure.query(async () => {
+    // ============ GERENCIAMENTO DE ADMINS (SÓ PROPRIETÁRIO) ============
+    listAdmins: adminProcedure.query(async ({ ctx }) => {
+      // Todos os admins podem ver a lista, mas IPs são protegidos
       const creds = await db.getAllClientCredentials();
+      const owner = isOwner(ctx.adminSession);
+      return creds
+        .filter(c => c.role === 'admin')
+        .map(c => ({
+          id: c.id,
+          username: c.username,
+          active: c.active,
+          createdAt: c.createdAt.toISOString(),
+          // IP só visível para o proprietário
+          deviceIP: owner ? c.deviceIP : null,
+          deviceFingerprint: owner ? c.deviceFingerprint : null,
+          lastLoginAt: owner ? c.lastLoginAt : null,
+        }));
+    }),
+
+    createAdmin: adminProcedure
+      .input(z.object({
+        username: z.string().min(3).max(100),
+        password: z.string().min(6),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // SÓ o proprietário pode criar admins
+        requireOwner(ctx);
+        const existing = await db.getClientCredentialByUsername(input.username);
+        if (existing) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
+        }
+        const { hash } = hashPassword(input.password);
+        const result = await db.createClientCredential({
+          username: input.username,
+          passwordHash: hash,
+          active: true,
+          credits: 0,
+          durationDays: null,
+          expiresAt: null,
+          label: null,
+          loginCode: null,
+          role: 'admin',
+        });
+        return { id: result.id, username: input.username };
+      }),
+
+    deleteAdmin: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        // SÓ o proprietário pode deletar admins
+        requireOwner(ctx);
+        const admin = await db.getClientCredentialById(input.id);
+        if (!admin) throw new TRPCError({ code: 'NOT_FOUND', message: 'Admin não encontrado' });
+        // Não pode deletar o próprio proprietário
+        if (admin.username === OWNER_USERNAME) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Impossível excluir o proprietário' });
+        }
+        if (admin.role !== 'admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Este usuário não é um administrador' });
+        await db.deleteClientCredential(input.id);
+      }),
+
+    // Mini admin management (SÓ PROPRIETÁRIO)
+    listMiniAdmins: adminProcedure.query(async ({ ctx }) => {
+      const creds = await db.getAllClientCredentials();
+      const owner = isOwner(ctx.adminSession);
       return creds
         .filter(c => c.role === 'mini_admin')
         .map(c => ({
@@ -649,6 +640,7 @@ export const appRouter = router({
           username: c.username,
           active: c.active,
           createdAt: c.createdAt.toISOString(),
+          deviceIP: owner ? c.deviceIP : null,
         }));
     }),
 
@@ -658,10 +650,7 @@ export const appRouter = router({
         password: z.string().min(6),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Only the owner 'murillo' can create mini admins
-        if (ctx.adminSession.username !== 'murillo') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode criar mini admins' });
-        }
+        requireOwner(ctx);
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
@@ -684,10 +673,7 @@ export const appRouter = router({
     deleteMiniAdmin: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        // Only the owner 'murillo' can delete mini admins
-        if (ctx.adminSession.username !== 'murillo') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode excluir mini admins' });
-        }
+        requireOwner(ctx);
         const miniAdmin = await db.getClientCredentialById(input.id);
         if (!miniAdmin) throw new TRPCError({ code: 'NOT_FOUND', message: 'Mini admin não encontrado' });
         if (miniAdmin.role === 'admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível excluir um administrador principal' });
@@ -697,10 +683,7 @@ export const appRouter = router({
     toggleMiniAdminActive: adminProcedure
       .input(z.object({ id: z.number(), active: z.boolean() }))
       .mutation(async ({ ctx, input }) => {
-        // Only the owner 'murillo' can toggle mini admins
-        if (ctx.adminSession.username !== 'murillo') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Apenas o proprietário pode gerenciar mini admins' });
-        }
+        requireOwner(ctx);
         await db.updateClientCredentialActive(input.id, input.active);
       }),
   }),
@@ -724,13 +707,11 @@ export const appRouter = router({
         accessKey: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Check if username already exists
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
         }
 
-        // Mini admin can only create clients with 1 day duration
         const expiresAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000);
         const loginCode = generateLoginCode();
         const { hash } = hashPassword(input.password);
@@ -739,7 +720,7 @@ export const appRouter = router({
           username: input.username,
           passwordHash: hash,
           active: true,
-          credits: 1, // 1 crédito para ativação
+          credits: 1,
           durationDays: 1,
           expiresAt,
           label: input.label || null,
@@ -761,10 +742,8 @@ export const appRouter = router({
       }),
 
     listMyClients: miniAdminProcedure.query(async ({ ctx }) => {
-      // Mini admins can only see clients with role 'client' that they created
-      // They cannot see other admins or mini admins
       const clients = await db.getAllClientCredentials();
-      // Filter: only clients created by this mini admin, and role must be 'client'
+      // Mini admins só veem seus próprios clientes, SEM IPs
       return clients
         .filter(c => c.role === 'client' && c.createdByMiniAdminId === ctx.adminSession.id)
         .map(c => ({
@@ -776,8 +755,9 @@ export const appRouter = router({
           expiresAt: c.expiresAt ? c.expiresAt.toISOString() : null,
           durationDays: c.durationDays,
           loginCode: c.loginCode || null,
-          deviceIP: c.deviceIP || null,
-          deviceFingerprint: c.deviceFingerprint || null,
+          // IPs escondidos de mini admins
+          deviceIP: null,
+          deviceFingerprint: null,
           lastLoginAt: c.lastLoginAt ? c.lastLoginAt.toISOString() : null,
           accessKey: c.accessKey || null,
           createdAt: c.createdAt.toISOString(),
