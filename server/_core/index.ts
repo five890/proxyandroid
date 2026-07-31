@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import cookieParser from "cookie-parser";
+import { runMigrations } from "./migrate";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -149,4 +150,7 @@ async function startServer() {
   });
 }
 
-seedDefaultAdmin().then(() => startServer()).catch(console.error);
+runMigrations()
+  .then(() => seedDefaultAdmin())
+  .then(() => startServer())
+  .catch(console.error);
