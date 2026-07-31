@@ -345,12 +345,10 @@ export async function getActiveSessions(credentialId: number) {
 export async function getDistinctActiveSessionCount(credentialId: number): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
-  const result = await db.execute(
-    `SELECT COUNT(DISTINCT deviceFingerprint) as cnt FROM active_sessions WHERE credentialId = ?`,
-    [credentialId]
-  );
-  const rows = result[0] as any;
-  return Number(rows?.cnt || 0);
+  const result = await db.select({ count: sql<number>`COUNT(DISTINCT ${activeSessions.deviceFingerprint})` })
+    .from(activeSessions)
+    .where(eq(activeSessions.credentialId, credentialId));
+  return Number(result[0]?.count || 0);
 }
 
 // Get all active sessions with client info

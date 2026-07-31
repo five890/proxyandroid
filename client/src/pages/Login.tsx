@@ -41,7 +41,7 @@ export default function Login() {
       // Clear any expired markers
       sessionStorage.removeItem("login_expired");
       sessionStorage.removeItem("dashboard_redirect_attempts");
-      // Save session to localStorage as fallback for cookie issues
+      // Save session to localStorage
       const sessionData = JSON.stringify({
         credentialId: data.credential.id,
         username: data.credential.username,
@@ -52,11 +52,12 @@ export default function Login() {
         expiresAt: data.credential.expiresAt,
       });
       localStorage.setItem("client_session", sessionData);
+      setLoading(false);
       await utils.auth.clientMe.invalidate();
       toast.success(`Bem-vindo, ${data.credential.username}!`);
       setTimeout(() => {
         setLocation("/dashboard");
-      }, 500);
+      }, 300);
     },
     onError: (error) => {
       const errorMsg = error.message || "Erro ao fazer login";

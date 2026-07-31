@@ -27,9 +27,9 @@ function requireOwner(ctx: any): void {
   }
 }
 
-// Client session middleware - validates client_session cookie
+// Client session middleware - validates client_session cookie or header
 const clientSessionProcedure = publicProcedure.use(async ({ ctx, next }) => {
-  const sessionCookie = ctx.req.cookies?.client_session;
+  const sessionCookie = ctx.req.cookies?.client_session || ctx.req.headers["x-client-session"];
   if (!sessionCookie) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Não autenticado. Faça login.' });
   }
@@ -209,7 +209,7 @@ export const appRouter = router({
     clientLogout: publicProcedure.mutation(async ({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       // Remove active session on logout
-      const sessionCookie = ctx.req.cookies?.client_session;
+      const sessionCookie = ctx.req.cookies?.client_session || ctx.req.headers["x-client-session"];
       if (sessionCookie) {
         try {
           const session = JSON.parse(sessionCookie);
@@ -239,10 +239,9 @@ export const appRouter = router({
         }
         const activationSetting = await db.getSiteSetting('activation_url');
         const globalAccessKeySetting = await db.getSiteSetting('access_key');
-        // Só retorna accessKey se a conta já foi ativada
         const accessKey = credential.activated ? (credential.accessKey || globalAccessKeySetting?.value || null) : null;
         const activeSessionCount = await db.getDistinctActiveSessionCount(credential.id);
-        return {
+        const result = {
           id: credential.id,
           username: credential.username,
           credits: credential.credits,
@@ -258,6 +257,7 @@ export const appRouter = router({
           loginLimit: credential.loginLimit || 1,
           activeSessionCount,
         };
+        return result;
       } catch {
         return null;
       }

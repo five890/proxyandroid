@@ -49,22 +49,27 @@ export default function Dashboard() {
     if (clientMeQuery.isLoading || clientMeQuery.isFetching) return;
     if (clientMeQuery.data !== null) return;
     
-    // Only redirect after multiple failed attempts (3 attempts = ~90s)
-    const attemptKey = "dashboard_redirect_attempts";
-    const attempts = parseInt(sessionStorage.getItem(attemptKey) || "0");
-    
-    if (attempts >= 3) {
-      sessionStorage.removeItem(attemptKey);
-      const isExpired = sessionStorage.getItem("login_expired") === "true" || isExpiredError;
-      if (isExpired) {
-        setLocation("/expired");
-      } else {
-        setLocation("/login");
-      }
-    } else {
-      sessionStorage.setItem(attemptKey, String(attempts + 1));
+    // If we have a local session stored, the server hasn't responded yet
+    // Don't redirect immediately - give it more time
+    const hasLocalSession = !!localStorage.getItem("client_session");
+    if (hasLocalSession) {
+      // Force a refetch after a delay
+      const timer = setTimeout(() => {
+        if (!clientMeQuery.data) {
+          utils.auth.clientMe.invalidate();
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
     }
-  }, [clientMeQuery.data, clientMeQuery.isLoading, clientMeQuery.isFetching, isExpiredError, setLocation]);
+    
+    // No local session either - redirect to login
+    const isExpired = sessionStorage.getItem("login_expired") === "true" || isExpiredError;
+    if (isExpired) {
+      setLocation("/expired");
+    } else {
+      setLocation("/login");
+    }
+  }, [clientMeQuery.data, clientMeQuery.isLoading, clientMeQuery.isFetching, isExpiredError, setLocation, utils.auth.clientMe]);
 
   // Fetch files - only when account is activated
   const filesQuery = trpc.clientFiles.files.useQuery(undefined, {
