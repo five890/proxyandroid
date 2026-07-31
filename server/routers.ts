@@ -154,11 +154,28 @@ export const appRouter = router({
           await db.setClientDevice(credential.id, currentFingerprint, clientIP, detectedType);
         }
 
+        // Login limit check
+        const loginLimit = credential.loginLimit || 1;
+        const currentSessionCount = await db.getActiveSessionCount(credential.id);
+        if (currentSessionCount >= loginLimit) {
+          // Check if this fingerprint already has a session (same device re-login)
+          const existingSession = await db.getActiveSessions(credential.id);
+          const sameDevice = existingSession.some((s: any) => s.deviceFingerprint === currentFingerprint);
+          if (!sameDevice) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: `Limite de ${loginLimit} dispositivo(s) atingido. Este login só pode ser usado em ${loginLimit} dispositivo(s) simultaneamente.`
+            });
+          }
+        }
+
+        // Register active session
         const currentIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
           ? ctx.req.headers['x-forwarded-for'][0]
           : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';
         await db.updateClientIP(credential.id, currentIP);
         await db.updateLastLogin(credential.id);
+        await db.createActiveSession({ credentialId: credential.id, deviceFingerprint: currentFingerprint, deviceIP: currentIP });
 
         const cookieOptions = getSessionCookieOptions(ctx.req);
         const sessionData = JSON.stringify({
@@ -189,8 +206,16 @@ export const appRouter = router({
         };
       }),
 
-    clientLogout: publicProcedure.mutation(({ ctx }) => {
+    clientLogout: publicProcedure.mutation(async ({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
+      // Remove active session on logout
+      const sessionCookie = ctx.req.cookies?.client_session;
+      if (sessionCookie) {
+        try {
+          const session = JSON.parse(sessionCookie);
+          await db.removeActiveSession(session.credentialId, session.deviceFingerprint || '');
+        } catch {}
+      }
       ctx.res.clearCookie("client_session", { ...cookieOptions });
       return { success: true } as const;
     }),
@@ -215,6 +240,7 @@ export const appRouter = router({
         const globalAccessKeySetting = await db.getSiteSetting('access_key');
         // Só retorna accessKey se a conta já foi ativada
         const accessKey = credential.activated ? (credential.accessKey || globalAccessKeySetting?.value || null) : null;
+        const activeSessionCount = await db.getActiveSessionCount(credential.id);
         return {
           id: credential.id,
           username: credential.username,
@@ -228,6 +254,8 @@ export const appRouter = router({
           accessKey,
           accessType: credential.accessType || 'proxy_ios',
           createdByAdmin: credential.createdByAdmin || null,
+          loginLimit: credential.loginLimit || 1,
+          activeSessionCount,
         };
       } catch {
         return null;
@@ -406,6 +434,7 @@ export const appRouter = router({
         loginCode: c.loginCode,
         generationLimit: c.generationLimit || 0,
         generationsUsed: c.generationsUsed || 0,
+        loginLimit: c.loginLimit || 1,
         createdByAdmin: c.createdByAdmin || null,
         accessType: c.accessType || 'proxy_ios',
       }));
@@ -421,6 +450,7 @@ export const appRouter = router({
         durationDays: z.number().int().min(1).optional(),
         accessKey: z.string().optional(),
         generationLimit: z.number().int().min(0).optional(),
+        loginLimit: z.number().int().min(1).optional(),
         accessType: z.enum(['proxy_ios', 'proxy_android']).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -457,6 +487,7 @@ export const appRouter = router({
           generationsUsed: 0,
           createdByAdmin: ctx.adminSession.username,
           accessType,
+          loginLimit: owner ? (input.loginLimit || 1) : 1,
         });
         return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey, accessType };
       }),
@@ -470,6 +501,7 @@ export const appRouter = router({
         durationDays: z.number().int().min(1).optional(),
         accessKey: z.string().optional(),
         generationLimit: z.number().int().min(0).optional(),
+        loginLimit: z.number().int().min(1).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         // Apenas o proprietário pode alterar duração e limite de gerações
@@ -489,6 +521,7 @@ export const appRouter = router({
           expiresAt,
           ...(input.accessKey !== undefined ? { accessKey: input.accessKey || null } : {}),
           ...(input.generationLimit !== undefined && owner ? { generationLimit: input.generationLimit } : {}),
+          ...(input.loginLimit !== undefined && owner ? { loginLimit: input.loginLimit } : {}),
         };
         await db.updateClientCredential(input.id, updates);
       }),

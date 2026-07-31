@@ -8,11 +8,13 @@ import {
   downloadHistory,
   creditTransactions,
   siteSettings,
+  activeSessions,
   type InsertClientCredential,
   type InsertFile,
   type InsertDownloadHistory,
   type InsertCreditTransaction,
   type InsertSiteSetting,
+  type InsertActiveSession,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -290,4 +292,39 @@ export async function getAllSiteSettings() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(siteSettings);
+}
+// ============ ACTIVE SESSIONS (Login Limit) ============
+
+export async function getActiveSessionCount(credentialId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`COUNT(*)` })
+    .from(activeSessions)
+    .where(eq(activeSessions.credentialId, credentialId));
+  return Number(result[0]?.count || 0);
+}
+
+export async function createActiveSession(data: Omit<InsertActiveSession, 'id' | 'createdAt'>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(activeSessions).values(data);
+}
+
+export async function removeActiveSession(credentialId: number, deviceFingerprint: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(activeSessions).where(
+    and(eq(activeSessions.credentialId, credentialId), eq(activeSessions.deviceFingerprint, deviceFingerprint))
+  );
+}
+
+export async function removeAllActiveSessions(credentialId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(activeSessions).where(eq(activeSessions.credentialId, credentialId));
+}
+export async function getActiveSessions(credentialId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(activeSessions).where(eq(activeSessions.credentialId, credentialId));
 }

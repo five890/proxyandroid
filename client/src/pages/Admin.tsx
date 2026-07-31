@@ -144,6 +144,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
               <TableHead>Validade</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Gerações</TableHead>
+              <TableHead>Login Limit</TableHead>
               <TableHead>Dispositivo</TableHead>
               <TableHead>IP Vinculado</TableHead>
               <TableHead>Último Acesso</TableHead>
@@ -245,6 +246,15 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                       <span className={client.generationsUsed >= client.generationLimit ? "text-red-500" : "text-amber-500"}>
                         {client.generationsUsed || 0}/{client.generationLimit}
                       </span>
+                    ) : (
+                      <span className="text-emerald-500">Ilimitado</span>
+                    )}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-xs font-medium">
+                    {client.loginLimit > 0 ? (
+                      <span className="text-amber-500">{client.loginLimit} dispositivo(s)</span>
                     ) : (
                       <span className="text-emerald-500">Ilimitado</span>
                     )}
@@ -603,6 +613,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   const [role, setRole] = useState<"client" | "admin">("client");
   const [durationDays, setDurationDays] = useState("1");
   const [generationLimit, setGenerationLimit] = useState("0");
+  const [loginLimit, setLoginLimit] = useState("1");
   const [accessType, setAccessType] = useState<"proxy_ios" | "proxy_android">("proxy_ios");
   const [generatedLoginCode, setGeneratedLoginCode] = useState("");
   const [accessKeyInput, setAccessKeyInput] = useState("");
@@ -635,6 +646,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
         role: 'client',
         durationDays: parseInt(durationDays) || undefined,
         generationLimit: parseInt(generationLimit) || 0,
+        loginLimit: parseInt(loginLimit) || 1,
         accessType,
         accessKey: accessType === 'proxy_android' ? accessKeyInput : undefined,
       },
@@ -657,6 +669,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
           setRole("client");
           setDurationDays("1");
           setGenerationLimit("0");
+          setLoginLimit("1");
           setAccessType("proxy_ios");
           setAccessKeyInput("");
           setGeneratedLoginCode(generateLoginCode());
@@ -874,6 +887,20 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               Número máximo de gerações que o cliente pode fazer. 0 = sem limite.
             </p>
           </div>
+          <div className="space-y-2">
+            <Label>Limite de Dispositivos</Label>
+            <Input
+              type="number"
+              value={loginLimit}
+              onChange={(e) => setLoginLimit(e.target.value)}
+              min="1"
+              placeholder="1 = um dispositivo"
+              className="bg-background/50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Número máximo de dispositivos que podem fazer login simultaneamente.
+            </p>
+          </div>
           {/* Tipo de Acesso */}
           <div className="space-y-2">
             <Label>Tipo de Acesso</Label>
@@ -951,6 +978,7 @@ function EditClientDialog({ client, onClose, mutation }: any) {
   const [newPassword, setNewPassword] = useState("");
   const [durationDays, setDurationDays] = useState(client.durationDays ? String(client.durationDays) : "1");
   const [generationLimit, setGenerationLimit] = useState(String(client.generationLimit || 0));
+  const [loginLimit, setLoginLimit] = useState(String(client.loginLimit || 1));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -961,6 +989,7 @@ function EditClientDialog({ client, onClose, mutation }: any) {
       active,
       durationDays: parseInt(durationDays) || undefined,
       generationLimit: parseInt(generationLimit) || 0,
+      loginLimit: parseInt(loginLimit) || 1,
     });
   };
 
@@ -1095,6 +1124,20 @@ function EditClientDialog({ client, onClose, mutation }: any) {
             </div>
             <p className="text-xs text-muted-foreground">
               Atual: {client.generationsUsed || 0} usadas / {client.generationLimit || 0} limite. 0 = sem limite.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Limite de Dispositivos</Label>
+            <Input
+              type="number"
+              value={loginLimit}
+              onChange={(e) => setLoginLimit(e.target.value)}
+              min="1"
+              placeholder="1 = um dispositivo"
+              className="bg-background/50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Número máximo de dispositivos que podem fazer login simultaneamente.
             </p>
           </div>
           {/* Login Code Section */}

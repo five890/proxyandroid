@@ -47,11 +47,26 @@ export const clientCredentials = mysqlTable("client_credentials", {
   lastLoginAt: timestamp("lastLoginAt"),
   generationLimit: int("generationLimit").default(0).notNull(),
   generationsUsed: int("generationsUsed").default(0).notNull(),
+  loginLimit: int("loginLimit").default(1).notNull(),
   accessType: mysqlEnum("accessType", ["proxy_ios", "proxy_android"]).default("proxy_ios").notNull(),
 });
 
 export type ClientCredential = typeof clientCredentials.$inferSelect;
 export type InsertClientCredential = typeof clientCredentials.$inferInsert;
+
+/**
+ * Active sessions table - para controlar limite de logins simultâneos
+ */
+export const activeSessions = mysqlTable("active_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  credentialId: int("credentialId").notNull(),
+  deviceFingerprint: varchar("deviceFingerprint", { length: 512 }).notNull(),
+  deviceIP: varchar("deviceIP", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ActiveSession = typeof activeSessions.$inferSelect;
+export type InsertActiveSession = typeof activeSessions.$inferInsert;
 
 /**
  * Downloadable files table

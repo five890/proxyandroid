@@ -112,6 +112,26 @@ async function createTables() {
     if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] deviceType already exists");
   }
 
+  try {
+    await connection.query(`ALTER TABLE client_credentials ADD COLUMN loginLimit INT NOT NULL DEFAULT 1`);
+    console.log("[DB] Added loginLimit column");
+  } catch (e: any) {
+    if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] loginLimit already exists");
+  }
+
+  // active_sessions table
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS active_sessions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      credentialId INT NOT NULL,
+      deviceFingerprint VARCHAR(512) NOT NULL,
+      deviceIP VARCHAR(64),
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      INDEX(credentialId)
+    )
+  `);
+  console.log("[DB] active_sessions table ready");
+
   // files table
   await connection.query(`
     CREATE TABLE IF NOT EXISTS files (
