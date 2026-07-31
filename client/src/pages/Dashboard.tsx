@@ -417,11 +417,11 @@ export default function Dashboard() {
               <span className="text-sm font-medium text-red-500">{session.credits}</span>
               <span className="text-xs text-gray-500">créditos</span>
             </div>
-            {session.expiresAt && (
+            {session.expiresAt && new Date(session.expiresAt) < new Date(Date.now() + 24 * 60 * 60 * 1000) && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-900/20 border border-amber-600/30">
                 <Clock className="w-3 h-3 text-amber-500" />
                 <span className="text-xs text-amber-500 font-medium">
-                  Expira em {Math.ceil((new Date(session.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} dias
+                  Expira em {Math.ceil((new Date(session.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60))}h
                 </span>
               </div>
             )}
