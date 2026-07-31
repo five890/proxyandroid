@@ -193,11 +193,7 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-red-400">AVISO IMPORTANTE</p>
                 <p className="text-xs text-gray-400">
                   Caso compartilhe tua key com outras pessoas, sua conta será banida no Free Fire.
-                  Autorize o IP com a key em: {session.activationUrl ? (
-                    <a href={session.activationUrl} target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline font-medium">{session.activationUrl}</a>
-                  ) : (
-                    <span className="text-white font-medium">https://freefireproxy.com.br/ativar/</span>
-                  )}
+                  Autorize o IP com a key no site indicado após a ativação.
                 </p>
               </div>
             </div>
@@ -213,7 +209,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Access Key */}
+            {/* Access Key - só aparece após ativar (session.accessKey já é null antes da ativação pelo backend) */}
             {session.accessKey && (
               <Card className="p-4 mb-6 bg-black/50 border border-red-600/20">
                 <div className="flex items-center justify-between mb-2">
@@ -252,31 +248,6 @@ export default function Dashboard() {
                 <p>Porta: <span className="text-white font-semibold">9997</span> - Hs Peito</p>
                 <p>Porta: <span className="text-white font-semibold">9998</span> - Hs Alto</p>
               </div>
-              {session.activationUrl && (
-                <div className="mt-3 pt-3 border-t border-red-900/30 flex items-center justify-between">
-                  <a
-                    href={session.activationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-red-400 hover:underline font-medium flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Ativar agora
-                  </a>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 gap-1 text-xs text-gray-400 hover:text-white"
-                    onClick={() => {
-                      navigator.clipboard.writeText(session.activationUrl!);
-                      toast.success("Link copiado!");
-                    }}
-                  >
-                    <Copy className="w-3 h-3" />
-                    Copiar link
-                  </Button>
-                </div>
-              )}
             </Card>
 
             {/* Credits */}
