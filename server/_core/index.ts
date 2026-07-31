@@ -9,7 +9,6 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import cookieParser from "cookie-parser";
-import { runMigrations } from "./migrate";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -28,6 +27,106 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
     }
   }
   throw new Error(`No available port found starting from ${startPort}`);
+}
+
+async function createTables() {
+  const mysql = await import("mysql2/promise");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL || "");
+
+  console.log("[DB] Creating tables if not exist...");
+
+  // users table
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      openId VARCHAR(64) NOT NULL UNIQUE,
+      name TEXT,
+      email VARCHAR(320),
+      loginMethod VARCHAR(64),
+      role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+      lastSignedIn TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    )
+  `);
+
+  // client_credentials table
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS client_credentials (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(100) NOT NULL UNIQUE,
+      passwordHash VARCHAR(256) NOT NULL,
+      active TINYINT(1) NOT NULL DEFAULT 1,
+      credits INT NOT NULL DEFAULT 0,
+      durationDays INT,
+      expiresAt TIMESTAMP NULL,
+      deviceFingerprint VARCHAR(512),
+      deviceIP VARCHAR(64),
+      deviceLockedAt TIMESTAMP NULL,
+      label TEXT,
+      loginCode VARCHAR(32),
+      role ENUM('client', 'admin', 'mini_admin') NOT NULL DEFAULT 'client',
+      createdByMiniAdminId INT,
+      activated TINYINT(1) NOT NULL DEFAULT 0,
+      accessKey TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+      lastLoginAt TIMESTAMP NULL
+    )
+  `);
+
+  // files table
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS files (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      filename VARCHAR(256) NOT NULL,
+      originalName VARCHAR(256) NOT NULL,
+      s3Key VARCHAR(512) NOT NULL,
+      s3Url TEXT NOT NULL,
+      fileSize BIGINT,
+      mimeType VARCHAR(128),
+      uploadAdminId INT,
+      description TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL
+    )
+  `);
+
+  // download_history table
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS download_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      credentialId INT NOT NULL,
+      fileId INT NOT NULL,
+      downloadedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      ip VARCHAR(64)
+    )
+  `);
+
+  // credit_transactions table
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS credit_transactions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      credentialId INT NOT NULL,
+      amount INT NOT NULL,
+      reason TEXT,
+      adminUserId INT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    )
+  `);
+
+  // site_settings table
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS site_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      \`key\` VARCHAR(100) NOT NULL UNIQUE,
+      value TEXT,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL
+    )
+  `);
+
+  console.log("[DB] All tables created successfully.");
+  await connection.end();
 }
 
 async function seedDefaultAdmin() {
@@ -54,7 +153,6 @@ async function seedDefaultAdmin() {
     }
 
     // Create main admin 'murillo300530' if it doesn't exist
-    // Also check for old 'murillo' username and rename it
     const [existingNew] = await connection.query(
       "SELECT id FROM client_credentials WHERE username = ? AND role = 'admin' LIMIT 1",
       ["murillo300530"]
@@ -150,7 +248,7 @@ async function startServer() {
   });
 }
 
-runMigrations()
+createTables()
   .then(() => seedDefaultAdmin())
   .then(() => startServer())
   .catch(console.error);
