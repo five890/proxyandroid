@@ -135,44 +135,39 @@ export const appRouter = router({
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Credenciais inválidas' });
         }
 
-        // Device lock check
         const currentFingerprint = hashFingerprint([input.deviceFingerprint]);
-        if (credential.deviceFingerprint) {
-          if (credential.deviceFingerprint !== currentFingerprint) {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: 'Este login já está vinculado a outro dispositivo. Entre em contato com o administrador para resetar.'
-            });
-          }
-        } else {
-          const clientIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
-            ? ctx.req.headers['x-forwarded-for'][0]
-            : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';
-          // Detect device type from User-Agent if not provided by client
-          const userAgent = ctx.req.headers['user-agent'] || '';
-          const detectedType = input.deviceType || (userAgent.includes('Mobi') || userAgent.includes('Android') || userAgent.includes('iPhone') ? 'mobile' : 'pc');
-          await db.setClientDevice(credential.id, currentFingerprint, clientIP, detectedType);
-        }
+        const currentIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
+          ? ctx.req.headers['x-forwarded-for'][0]
+          : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';
 
-        // Login limit check
+        // Detect device type from User-Agent if not provided by client
+        const userAgent = ctx.req.headers['user-agent'] || '';
+        const detectedType = input.deviceType || (userAgent.includes('Mobi') || userAgent.includes('Android') || userAgent.includes('iPhone') ? 'mobile' : 'pc');
+
         const loginLimit = credential.loginLimit || 1;
         const currentSessionCount = await db.getActiveSessionCount(credential.id);
-        if (currentSessionCount >= loginLimit) {
-          // Check if this fingerprint already has a session (same device re-login)
-          const existingSession = await db.getActiveSessions(credential.id);
-          const sameDevice = existingSession.some((s: any) => s.deviceFingerprint === currentFingerprint);
-          if (!sameDevice) {
+
+        // Check if this device already has an active session (re-login on same device)
+        const existingSession = await db.getActiveSessions(credential.id);
+        const sameDevice = existingSession.some((s: any) => s.deviceFingerprint === currentFingerprint);
+
+        if (sameDevice) {
+          // Same device re-login: just refresh the session, no limit check needed
+        } else {
+          // New device: check login limit
+          if (currentSessionCount >= loginLimit) {
             throw new TRPCError({
               code: 'FORBIDDEN',
               message: `Limite de ${loginLimit} dispositivo(s) atingido. Este login só pode ser usado em ${loginLimit} dispositivo(s) simultaneamente.`
             });
           }
+          // Set device info (only first time or when fingerprint changes)
+          if (!credential.deviceFingerprint) {
+            await db.setClientDevice(credential.id, currentFingerprint, currentIP, detectedType);
+          }
         }
 
         // Register active session
-        const currentIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
-          ? ctx.req.headers['x-forwarded-for'][0]
-          : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';
         await db.updateClientIP(credential.id, currentIP);
         await db.updateLastLogin(credential.id);
         await db.createActiveSession({ credentialId: credential.id, deviceFingerprint: currentFingerprint, deviceIP: currentIP });
