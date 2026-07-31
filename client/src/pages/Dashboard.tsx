@@ -335,11 +335,78 @@ export default function Dashboard() {
                 <Server className="w-4 h-4 text-red-500" />
                 <span className="text-xs font-medium text-white">Servidores</span>
               </div>
-              <div className="space-y-1 text-xs font-mono text-gray-400">
-                <p>IP: <span className="text-white font-semibold">2.24.121.175</span></p>
-                <p>Porta: <span className="text-white font-semibold">9999</span> - Hs Pecoço</p>
-                <p>Porta: <span className="text-white font-semibold">9997</span> - Hs Peito</p>
-                <p>Porta: <span className="text-white font-semibold">9998</span> - Hs Alto</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-gray-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-gray-400">IP:</span>
+                    <span className="text-xs font-mono font-semibold text-white">2.24.121.175</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 flex-shrink-0 text-gray-400 hover:text-white"
+                    onClick={() => {
+                      navigator.clipboard.writeText("2.24.121.175");
+                      toast.success("IP copiado!");
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-gray-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-gray-400">Porta:</span>
+                    <span className="text-xs font-mono font-semibold text-white">9999</span>
+                    <span className="text-[11px] text-gray-500">- Hs Pecoço</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 flex-shrink-0 text-gray-400 hover:text-white"
+                    onClick={() => {
+                      navigator.clipboard.writeText("9999");
+                      toast.success("Porta copiada!");
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-gray-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-gray-400">Porta:</span>
+                    <span className="text-xs font-mono font-semibold text-white">9997</span>
+                    <span className="text-[11px] text-gray-500">- Hs Peito</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 flex-shrink-0 text-gray-400 hover:text-white"
+                    onClick={() => {
+                      navigator.clipboard.writeText("9997");
+                      toast.success("Porta copiada!");
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-gray-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-gray-400">Porta:</span>
+                    <span className="text-xs font-mono font-semibold text-white">9998</span>
+                    <span className="text-[11px] text-gray-500">- Hs Alto</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 flex-shrink-0 text-gray-400 hover:text-white"
+                    onClick={() => {
+                      navigator.clipboard.writeText("9998");
+                      toast.success("Porta copiada!");
+                    }}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
             </Card>
 
@@ -552,11 +619,80 @@ export default function Dashboard() {
               <Server className="w-4 h-4 text-red-500" />
               <span className="text-xs font-medium text-white">Informações do Servidor</span>
             </div>
-            <div className="space-y-1 text-xs font-mono text-gray-400 mb-3">
-              <p>IP: <span className="text-white font-semibold">2.24.121.175</span></p>
-              <p>Porta: <span className="text-white font-semibold">9999</span> - Hs Pecoço</p>
-              <p>Porta: <span className="text-white font-semibold">9997</span> - Hs Peito</p>
-              <p>Porta: <span className="text-white font-semibold">9998</span> - Hs Alto</p>
+            <div className="space-y-2 mb-3">
+              {/* IP */}
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-gray-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-gray-400">IP:</span>
+                  <span className="text-xs font-mono font-semibold text-white">2.24.121.175</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 flex-shrink-0 text-gray-400 hover:text-white"
+                  onClick={() => {
+                    navigator.clipboard.writeText("2.24.121.175");
+                    toast.success("IP copiado!");
+                  }}
+                >
+                  <Copy className="w-3 h-3" />
+                </Button>
+              </div>
+              {/* Portas */}
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-gray-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-gray-400">Porta:</span>
+                  <span className="text-xs font-mono font-semibold text-white">9999</span>
+                  <span className="text-[11px] text-gray-500">- Hs Pecoço</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 flex-shrink-0 text-gray-400 hover:text-white"
+                  onClick={() => {
+                    navigator.clipboard.writeText("9999");
+                    toast.success("Porta copiada!");
+                  }}
+                >
+                  <Copy className="w-3 h-3" />
+                </Button>
+              </div>
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-gray-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-gray-400">Porta:</span>
+                  <span className="text-xs font-mono font-semibold text-white">9997</span>
+                  <span className="text-[11px] text-gray-500">- Hs Peito</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 flex-shrink-0 text-gray-400 hover:text-white"
+                  onClick={() => {
+                    navigator.clipboard.writeText("9997");
+                    toast.success("Porta copiada!");
+                  }}
+                >
+                  <Copy className="w-3 h-3" />
+                </Button>
+              </div>
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-gray-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-gray-400">Porta:</span>
+                  <span className="text-xs font-mono font-semibold text-white">9998</span>
+                  <span className="text-[11px] text-gray-500">- Hs Alto</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 flex-shrink-0 text-gray-400 hover:text-white"
+                  onClick={() => {
+                    navigator.clipboard.writeText("9998");
+                    toast.success("Porta copiada!");
+                  }}
+                >
+                  <Copy className="w-3 h-3" />
+                </Button>
+              </div>
             </div>
 
             {session.activationUrl && (
