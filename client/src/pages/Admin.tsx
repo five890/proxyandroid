@@ -542,7 +542,6 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   const [credits, setCredits] = useState("0");
   const [role, setRole] = useState<"client" | "admin">("client");
   const [durationDays, setDurationDays] = useState("1");
-  const [accessKey, setAccessKey] = useState("");
   const [generatedLoginCode, setGeneratedLoginCode] = useState("");
   const [showCreated, setShowCreated] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<any>(null);
@@ -567,7 +566,6 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
         credits: parseInt(credits) || 0,
         role: 'client',
         durationDays: parseInt(durationDays) || undefined,
-        accessKey: accessKey || undefined,
       },
       {
         onSuccess: () => {
@@ -577,7 +575,6 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
             loginCode: generatedLoginCode,
             label: label || undefined,
             durationDays: parseInt(durationDays) || 1,
-            accessKey: accessKey || undefined,
           });
           setShowCreated(true);
           setUsername("");
@@ -586,7 +583,6 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
           setCredits("0");
           setRole("client");
           setDurationDays("1");
-          setAccessKey("");
           setGeneratedLoginCode(generateLoginCode());
         },
       }
@@ -663,24 +659,6 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               <p className="text-sm font-medium text-foreground">{createdCredentials.password}</p>
             </div>
 
-            {/* Access Key */}
-            {createdCredentials.accessKey && (
-              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-green-500 font-medium">Chave de Acesso</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(createdCredentials.accessKey, "Chave de acesso")}
-                    className="h-5 px-2 text-xs text-green-500"
-                  >
-                    <Copy className="w-3 h-3 mr-1" /> Copiar
-                  </Button>
-                </div>
-                <p className="text-sm font-mono text-green-400">{createdCredentials.accessKey}</p>
-              </div>
-            )}
-
             {/* Info */}
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <p className="text-xs text-amber-500">
@@ -694,7 +672,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const all = `Login: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}${createdCredentials.accessKey ? `\nKey: ${createdCredentials.accessKey}` : ''}`;
+                  const all = `Login: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}`;
                   copyToClipboard(all, "Todas as credenciais");
                 }}
                 className="w-full gap-2"
@@ -802,18 +780,6 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               min="0"
               className="bg-background/50"
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Chave de Acesso (Key)</Label>
-            <Input
-              value={accessKey}
-              onChange={(e) => setAccessKey(e.target.value)}
-              placeholder="Chave de acesso do cliente (ex: Free Fire Proxy Key)"
-              className="bg-background/50"
-            />
-            <p className="text-xs text-muted-foreground">
-              Esta chave será revelada ao cliente após ele usar o crédito para ativar.
-            </p>
           </div>
           <div className="space-y-2">
             <Label>Duração do Acesso (dias)</Label>
@@ -1363,8 +1329,6 @@ function SettingsManagement() {
   const utils = trpc.useUtils();
   const settingsQuery = trpc.admin.getSettings.useQuery();
   const [activationUrl, setActivationUrl] = useState("https://freefireproxy.com.br/ativar/");
-  const [accessKey, setAccessKey] = useState("");
-
   const updateMutation = trpc.admin.updateSettings.useMutation({
     onSuccess: () => {
       toast.success("Configurações atualizadas com sucesso");
@@ -1378,18 +1342,11 @@ function SettingsManagement() {
       if (settingsQuery.data.activation_url) {
         setActivationUrl(settingsQuery.data.activation_url);
       }
-      if (settingsQuery.data.access_key) {
-        setAccessKey(settingsQuery.data.access_key);
-      }
     }
   }, [settingsQuery.data]);
 
   const handleSaveUrl = () => {
     updateMutation.mutate({ activationUrl });
-  };
-
-  const handleSaveKey = () => {
-    updateMutation.mutate({ accessKey });
   };
 
   return (
@@ -1436,53 +1393,6 @@ function SettingsManagement() {
             >
               {activationUrl}
             </a>
-          </div>
-        )}
-      </Card>
-
-      {/* Access Key */}
-      <Card className="p-6">
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Key className="w-4 h-4 text-primary" />
-          Chave de Acesso (Key)
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Chave de acesso que será exibida ao cliente. O cliente copia essa chave e usa na URL de ativação acima.
-        </p>
-        <div className="flex gap-3">
-          <Input
-            value={accessKey}
-            onChange={(e) => setAccessKey(e.target.value)}
-            placeholder="Cole a chave de acesso aqui..."
-            className="flex-1 font-mono text-sm"
-          />
-          <Button
-            onClick={handleSaveKey}
-            disabled={updateMutation.isPending}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-          >
-            {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            Salvar
-          </Button>
-        </div>
-        {accessKey && (
-          <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Chave que será exibida ao cliente:</p>
-              <p className="text-sm text-foreground font-mono font-semibold">{accessKey}</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={() => {
-                navigator.clipboard.writeText(accessKey);
-                toast.success("Chave copiada!");
-              }}
-            >
-              <Copy className="w-4 h-4" />
-              Copiar
-            </Button>
           </div>
         )}
       </Card>
