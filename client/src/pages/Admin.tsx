@@ -64,8 +64,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
   const clientsQuery = trpc.admin.listClients.useQuery();
   const createMutation = trpc.admin.createClient.useMutation({
     onSuccess: () => {
-      toast.success("Cliente criado com sucesso");
-      setShowCreate(false);
+      // Do not close the dialog here, the dialog's own onSuccess handler will show the credentials
       utils.admin.listClients.invalidate();
     },
     onError: (err: any) => toast.error(err.message),
@@ -718,7 +717,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
           setCreatedCredentials({
             username,
             password,
-            loginCode: generatedLoginCode,
+            loginCode: data?.loginCode || generatedLoginCode,
             label: label || undefined,
             durationDays: parseInt(durationDays) || 1,
             accessKey: data?.accessKey || null,

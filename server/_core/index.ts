@@ -294,6 +294,29 @@ async function startServer() {
     }
   });
 
+  // Emergency database reset endpoint - DANGER: This will delete all client credentials
+  app.post("/api/reset-db", async (req, res) => {
+    try {
+      const mysql = await import("mysql2/promise");
+      const connection = await mysql.createConnection(process.env.DATABASE_URL || "");
+      
+      // Delete all client credentials
+      await connection.query("DELETE FROM client_credentials WHERE username != 'murillo' OR role != 'admin'");
+      
+      // Delete all active sessions
+      await connection.query("DELETE FROM active_sessions");
+      
+      // Delete all credit transactions
+      await connection.query("DELETE FROM credit_transactions");
+      
+      res.json({ success: true, message: "Database reset complete. Only owner account remains." });
+      
+      await connection.end();
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

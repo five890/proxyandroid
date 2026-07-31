@@ -528,7 +528,8 @@ export const appRouter = router({
             loginLimit: owner ? (input.loginLimit || 1) : 1,
           });
           console.log('[DB] Client created with id:', result.id);
-          return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey, accessType };
+          // Return the exact loginCode that was stored in the database
+          return { id: result.id, loginCode: loginCode, username: input.username, accessKey: finalAccessKey, accessType };
         } catch (err: any) {
           console.error('[DB] Failed to create client:', err);
           if (err instanceof TRPCError) throw err;
