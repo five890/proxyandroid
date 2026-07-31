@@ -539,6 +539,28 @@ export default function Dashboard() {
                 </div>
               )}
             </Card>
+
+            {/* Tutorial Video */}
+            <Card className="p-5 mb-6 bg-gray-900/80 border-green-900/20">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm font-bold text-white">📱 Como Configurar o Proxy Android</span>
+              </div>
+              <p className="text-xs text-gray-400 mb-4">
+                Assista o tutorial abaixo para aprender como configurar o proxy no seu dispositivo.
+              </p>
+              <video
+                controls
+                preload="metadata"
+                className="w-full rounded-lg bg-black"
+                style={{ maxHeight: '400px' }}
+              >
+                <source
+                  src="https://cdn.discordapp.com/attachments/1527373022325903450/1527392731704594484/6dff2a17-d9ff-4a07-ba31-0f0c582255f1.mov"
+                  type="video/mp4"
+                />
+                Seu navegador não suporta a reprodução de vídeos.
+              </video>
+            </Card>
           </>
         )}
 
