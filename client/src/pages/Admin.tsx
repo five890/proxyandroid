@@ -1530,7 +1530,10 @@ function Admin() {
   const [loading, setLoading] = useState(true);
 
   // Check admin session
-  const adminMeQuery = trpc.auth.adminMe.useQuery();
+  const adminMeQuery = trpc.auth.adminMe.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevent refetch on every mutation
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
     // Only redirect after query finishes AND data is explicitly null (not just loading)
