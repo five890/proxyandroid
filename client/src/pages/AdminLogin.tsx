@@ -14,8 +14,13 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [, navigate] = useLocation();
 
+  const utils = trpc.useUtils();
+
   const loginMutation = trpc.auth.adminLogin.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Invalidate adminMe cache before navigating so Admin page sees fresh session
+      await utils.auth.adminMe.invalidate();
+      await utils.auth.adminMe.refetch();
       toast.success("Login administrativo realizado!");
       navigate("/admin");
     },

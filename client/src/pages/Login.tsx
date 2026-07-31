@@ -35,8 +35,12 @@ export default function Login() {
   const [, setLocation] = useLocation();
 
   // Client login
+  const utils = trpc.useUtils();
   const loginMutation = trpc.auth.clientLogin.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Invalidate clientMe cache so Dashboard sees fresh session
+      await utils.auth.clientMe.invalidate();
+      await utils.auth.clientMe.refetch();
       toast.success(`Bem-vindo, ${data.credential.username}!`);
       setLocation("/dashboard");
     },

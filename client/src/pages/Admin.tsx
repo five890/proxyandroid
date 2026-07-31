@@ -1508,13 +1508,20 @@ function Admin() {
   const adminMeQuery = trpc.auth.adminMe.useQuery();
 
   useEffect(() => {
-    if (!adminMeQuery.isLoading && !adminMeQuery.data) {
-      navigate("/admin-login");
+    // Only redirect after query finishes AND data is explicitly null (not just loading)
+    if (!adminMeQuery.isLoading && !adminMeQuery.isFetching && adminMeQuery.data === null) {
+      // Small delay to allow cookie to be set properly
+      const timer = setTimeout(() => {
+        if (!adminMeQuery.data) {
+          navigate("/admin-login");
+        }
+      }, 500);
+      return () => clearTimeout(timer);
     }
     if (!adminMeQuery.isLoading) {
       setLoading(false);
     }
-  }, [adminMeQuery.isLoading, adminMeQuery.data, navigate]);
+  }, [adminMeQuery.isLoading, adminMeQuery.isFetching, adminMeQuery.data, navigate]);
 
   const logoutMutation = trpc.auth.adminLogout.useMutation({
     onSuccess: () => {

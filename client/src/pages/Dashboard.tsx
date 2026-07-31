@@ -39,17 +39,22 @@ export default function Dashboard() {
     (clientMeError?.message?.includes("expirou") || clientMeError?.message?.includes("Expirou"));
 
   useEffect(() => {
-    if (!clientMeQuery.isLoading) {
-      if (!clientMeQuery.data) {
-        const isExpired = sessionStorage.getItem("login_expired") === "true" || isExpiredError;
-        if (isExpired) {
-          setLocation("/expired");
-        } else {
-          setLocation("/login");
+    // Only redirect after query finishes AND data is explicitly null (not just loading)
+    if (!clientMeQuery.isLoading && !clientMeQuery.isFetching && clientMeQuery.data === null) {
+      // Small delay to allow cookie to be set properly
+      const timer = setTimeout(() => {
+        if (!clientMeQuery.data) {
+          const isExpired = sessionStorage.getItem("login_expired") === "true" || isExpiredError;
+          if (isExpired) {
+            setLocation("/expired");
+          } else {
+            setLocation("/login");
+          }
         }
-      }
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [clientMeQuery.data, clientMeQuery.isLoading, isExpiredError]);
+  }, [clientMeQuery.data, clientMeQuery.isLoading, clientMeQuery.isFetching, isExpiredError, setLocation]);
 
   // Fetch files - only when account is activated
   const filesQuery = trpc.clientFiles.files.useQuery(undefined, {
