@@ -90,11 +90,21 @@ export default function Dashboard() {
 
   const activateMutation = trpc.auth.activateAccount.useMutation({
     onSuccess: (data) => {
-      toast.success("Conta ativada com sucesso! Seus arquivos agora estão disponíveis.");
-      if (data.accessKey) {
-        setActivatedAccessKey(data.accessKey);
-        setActivatedAccessUrl(data.activationUrl || null);
-        setShowAccessKey(true);
+      // Proxy Android: mostra apenas a key, sem link de ativação
+      if (session?.accessType === 'proxy_android') {
+        toast.success("Proxy gerado com sucesso!");
+        if (data.accessKey) {
+          setActivatedAccessKey(data.accessKey);
+          setActivatedAccessUrl(null); // Proxy Android não tem link de ativação
+          setShowAccessKey(true);
+        }
+      } else {
+        toast.success("Conta ativada com sucesso! Seus arquivos agora estão disponíveis.");
+        if (data.accessKey) {
+          setActivatedAccessKey(data.accessKey);
+          setActivatedAccessUrl(data.activationUrl || null);
+          setShowAccessKey(true);
+        }
       }
       utils.auth.clientMe.invalidate();
       utils.clientFiles.files.invalidate();
@@ -147,8 +157,99 @@ export default function Dashboard() {
   if (!session) return null;
 
   // ============ ACTIVATION SCREEN ============
-  // Proxy Android já nasce ativado, não precisa de tela de ativação
-  if (!session.activated && session.accessType === 'proxy_ios') {
+  // Se não está ativado, mostra tela de ativação
+  if (!session.activated) {
+    if (session.accessType === 'proxy_android') {
+      // Proxy Android não ativado: mostra painel simplificado com botão de ativar
+      return (
+        <div className="min-h-screen bg-black">
+          {/* Header */}
+          <header className="sticky top-0 z-50 bg-black/95 backdrop-blur border-b border-green-900/20">
+            <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-green-600/20 flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-green-500" />
+                </div>
+                <div>
+                  <h1 className="text-sm font-bold text-green-500 tracking-wide uppercase">Shelby Community</h1>
+                  <p className="text-xs text-gray-500">{session.username}</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-gray-400 hover:text-white gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sair
+              </Button>
+            </div>
+          </header>
+
+          <main className="max-w-2xl mx-auto px-6 py-12">
+            <Card className="p-8 text-center bg-gray-900/80 border-green-900/20">
+              <div className="w-16 h-16 rounded-xl bg-green-600/20 flex items-center justify-center mx-auto mb-6">
+                <Download className="w-8 h-8 text-green-500" />
+              </div>
+              <h2 className="text-2xl font-black text-white mb-2">
+                Proxy Android
+              </h2>
+              <p className="text-gray-400 text-sm mb-6">
+                Você possui <span className="font-semibold text-green-500">{session.credits} crédito(s)</span> disponível(is). 
+                Use seu crédito para gerar o proxy e liberar sua chave de acesso.
+              </p>
+
+              {/* Warning */}
+              <div className="mb-6 flex items-start gap-3 p-4 rounded-lg bg-green-900/20 border border-green-600/30 text-left">
+                <AlertTriangle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-green-400">COMO FUNCIONA</p>
+                  <p className="text-xs text-gray-400">
+                    Ao ativar, você receberá sua chave de acesso para usar no aplicativo Proxy Android. Baixe o app e use a chave para configurar o proxy.
+                  </p>
+                </div>
+              </div>
+
+              {/* Credits */}
+              <div className="flex items-center justify-center gap-2 mb-6 px-4 py-3 rounded-lg bg-green-900/10 border border-green-600/20">
+                <CreditCard className="w-4 h-4 text-green-500" />
+                <span className="text-sm text-gray-400">Créditos disponíveis:</span>
+                <Badge variant="default" className="bg-green-600 text-white">{session.credits}</Badge>
+              </div>
+
+              {/* Activate Button */}
+              <Button
+                size="lg"
+                onClick={handleActivate}
+                disabled={activateMutation.isPending || session.credits < 1}
+                className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white font-bold tracking-wide"
+              >
+                {activateMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Gerando Proxy...
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-4 h-4" />
+                    Ativar Proxy Android (1 crédito)
+                  </>
+                )}
+              </Button>
+
+              {session.credits < 1 && (
+                <p className="text-xs text-red-400 mt-3">
+                  Você não possui créditos suficientes. Entre em contato com o administrador.
+                </p>
+              )}
+            </Card>
+          </main>
+        </div>
+      );
+    }
+
+    // Proxy iOS não ativado
     return (
       <div className="min-h-screen bg-black">
         {/* Header */}
@@ -649,7 +750,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {activatedAccessUrl && (
+            {/* Link de ativação - só para Proxy iOS */}
+            {activatedAccessUrl && session?.accessType !== 'proxy_android' && (
               <div className="bg-gray-900 rounded-lg p-4 border border-red-900/30">
                 <p className="text-xs text-gray-400 mb-2">Link de ativação:</p>
                 <div className="flex items-center gap-2">

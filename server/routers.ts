@@ -220,7 +220,7 @@ export const appRouter = router({
           expiresAt: credential.expiresAt ? credential.expiresAt.toISOString() : null,
           durationDays: credential.durationDays,
           activated: credential.activated || false,
-          activationUrl: credential.activated ? (activationSetting?.value || null) : null,
+          activationUrl: (credential.activated && credential.accessType !== 'proxy_android') ? (activationSetting?.value || null) : null,
           accessKey,
           accessType: credential.accessType || 'proxy_ios',
           createdByAdmin: credential.createdByAdmin || null,
@@ -443,7 +443,7 @@ export const appRouter = router({
           durationDays: finalDurationDays,
           expiresAt: expiresAt,
           loginCode,
-          activated: accessType === 'proxy_android', // Proxy Android já nasce ativado
+          activated: false, // Todos começam não ativados, ativação ocorre ao usar crédito
           accessKey: finalAccessKey,
           generationLimit: owner ? (input.generationLimit || 0) : 0,
           generationsUsed: 0,
