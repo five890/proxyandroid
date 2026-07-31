@@ -33,6 +33,7 @@ export const clientCredentials = mysqlTable("client_credentials", {
   expiresAt: timestamp("expiresAt"),
   deviceFingerprint: varchar("deviceFingerprint", { length: 512 }),
   deviceIP: varchar("deviceIP", { length: 64 }),
+  deviceType: varchar("deviceType", { length: 32 }),
   deviceLockedAt: timestamp("deviceLockedAt"),
   label: text("label"),
   loginCode: varchar("loginCode", { length: 32 }),

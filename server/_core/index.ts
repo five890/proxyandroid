@@ -105,6 +105,13 @@ async function createTables() {
     if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] accessType already exists");
   }
 
+  try {
+    await connection.query(`ALTER TABLE client_credentials ADD COLUMN deviceType VARCHAR(32)`);
+    console.log("[DB] Added deviceType column");
+  } catch (e: any) {
+    if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] deviceType already exists");
+  }
+
   // files table
   await connection.query(`
     CREATE TABLE IF NOT EXISTS files (

@@ -145,6 +145,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
               <TableHead>Status</TableHead>
               <TableHead>Gerações</TableHead>
               <TableHead>Dispositivo</TableHead>
+              <TableHead>IP Vinculado</TableHead>
               <TableHead>Último Acesso</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -243,13 +244,25 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                 </TableCell>
                 <TableCell>
                   {client.deviceFingerprint ? (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Monitor className="w-3 h-3" />
-                      Vinculado
-                    </span>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Monitor className="w-3 h-3" />
+                        Vinculado
+                      </span>
+                      {client.deviceType && (
+                        <span className={`text-xs font-medium ${client.deviceType === 'mobile' ? 'text-blue-400' : 'text-purple-400'}`}>
+                          {client.deviceType === 'mobile' ? '📱 Celular' : '💻 PC'}
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">Nenhum</span>
                   )}
+                </TableCell>
+                <TableCell>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {client.deviceIP || '—'}
+                  </span>
                 </TableCell>
 
                 <TableCell>

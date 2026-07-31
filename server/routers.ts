@@ -114,6 +114,7 @@ export const appRouter = router({
         username: z.string().min(1),
         password: z.string().min(1),
         deviceFingerprint: z.string().min(1),
+        deviceType: z.enum(['mobile', 'pc']).optional(),
         loginCode: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -147,7 +148,10 @@ export const appRouter = router({
           const clientIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
             ? ctx.req.headers['x-forwarded-for'][0]
             : ctx.req.headers['x-forwarded-for']) || ctx.req.socket.remoteAddress || 'unknown';
-          await db.setClientDevice(credential.id, currentFingerprint, clientIP);
+          // Detect device type from User-Agent if not provided by client
+          const userAgent = ctx.req.headers['user-agent'] || '';
+          const detectedType = input.deviceType || (userAgent.includes('Mobi') || userAgent.includes('Android') || userAgent.includes('iPhone') ? 'mobile' : 'pc');
+          await db.setClientDevice(credential.id, currentFingerprint, clientIP, detectedType);
         }
 
         const currentIP = (Array.isArray(ctx.req.headers['x-forwarded-for'])
@@ -391,7 +395,8 @@ export const appRouter = router({
         expiresAt: c.expiresAt,
         // IP e dados do dispositivo do proprietário nunca são exibidos
         deviceFingerprint: (owner && c.username !== 'murillo') ? c.deviceFingerprint : null,
-        deviceIP: null,
+        deviceIP: (owner && c.username !== 'murillo') ? c.deviceIP : null,
+        deviceType: (owner && c.username !== 'murillo') ? c.deviceType : null,
         deviceLockedAt: (owner && c.username !== 'murillo') ? c.deviceLockedAt : null,
         lastLoginAt: owner ? c.lastLoginAt : null,
         createdAt: c.createdAt,

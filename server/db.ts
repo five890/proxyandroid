@@ -155,16 +155,18 @@ export async function resetClientDevice(id: number) {
   await db.update(clientCredentials).set({
     deviceFingerprint: null,
     deviceIP: null,
+    deviceType: null,
     deviceLockedAt: null,
   }).where(eq(clientCredentials.id, id));
 }
 
-export async function setClientDevice(id: number, fingerprint: string, ip: string) {
+export async function setClientDevice(id: number, fingerprint: string, ip: string, deviceType?: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(clientCredentials).set({
     deviceFingerprint: fingerprint,
     deviceIP: ip,
+    deviceType: deviceType || null,
     deviceLockedAt: new Date(),
   }).where(eq(clientCredentials.id, id));
 }
