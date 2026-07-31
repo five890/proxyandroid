@@ -1,4 +1,4 @@
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
@@ -185,6 +185,18 @@ export async function updateClientIP(id: number, ip: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(clientCredentials).set({ deviceIP: ip }).where(eq(clientCredentials.id, id));
+}
+
+export async function updateGenerationLimit(id: number, generationLimit: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(clientCredentials).set({ generationLimit }).where(eq(clientCredentials.id, id));
+}
+
+export async function incrementGenerationsUsed(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(clientCredentials).set({ generationsUsed: sql`COALESCE(generationsUsed, 0) + 1` }).where(eq(clientCredentials.id, id));
 }
 
 // ============ FILES ============

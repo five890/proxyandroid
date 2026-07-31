@@ -43,6 +43,8 @@ export const clientCredentials = mysqlTable("client_credentials", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastLoginAt: timestamp("lastLoginAt"),
+  generationLimit: int("generationLimit").default(0).notNull(),
+  generationsUsed: int("generationsUsed").default(0).notNull(),
 });
 
 export type ClientCredential = typeof clientCredentials.$inferSelect;

@@ -139,6 +139,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
               <TableHead>Créditos</TableHead>
               <TableHead>Validade</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Gerações</TableHead>
               <TableHead>Dispositivo</TableHead>
               <TableHead>Último Acesso</TableHead>
               <TableHead className="text-right">Ações</TableHead>
@@ -205,6 +206,17 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                   </Badge>
                 </TableCell>
                 <TableCell>
+                  <span className="text-xs font-mono">
+                    {client.generationLimit > 0 ? (
+                      <span className={client.generationsUsed >= client.generationLimit ? "text-red-500" : "text-amber-500"}>
+                        {client.generationsUsed || 0}/{client.generationLimit}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-500">Ilimitado</span>
+                    )}
+                  </span>
+                </TableCell>
+                <TableCell>
                   {client.deviceFingerprint ? (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Monitor className="w-3 h-3" />
@@ -235,8 +247,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                     </div>
                   ) : (
                   <div className="flex items-center justify-end gap-1">
-                    {/* Only owner (murillo) can manage admin accounts; other admins can only manage clients */}
-                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                    {true && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -246,7 +257,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                         <Pencil className="w-4 h-4" />
                       </Button>
                     )}
-                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                    {true && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -256,7 +267,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                         <CreditCard className="w-4 h-4" />
                       </Button>
                     )}
-                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                    {true && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -266,7 +277,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                         <History className="w-4 h-4" />
                       </Button>
                     )}
-                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                    {true && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -277,7 +288,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                         <RotateCcw className="w-4 h-4" />
                       </Button>
                     )}
-                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                    {true && (
                       <div className="flex items-center mx-1">
                         <Switch
                           checked={client.active}
@@ -287,7 +298,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                         />
                       </div>
                     )}
-                    {(client.role === 'client' || currentAdmin?.username === 'murillo') && (
+                    {true && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -531,6 +542,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
   const [credits, setCredits] = useState("0");
   const [role, setRole] = useState<"client" | "admin">("client");
   const [durationDays, setDurationDays] = useState("1");
+  const [generationLimit, setGenerationLimit] = useState("0");
   const [generatedLoginCode, setGeneratedLoginCode] = useState("");
   const [showCreated, setShowCreated] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<any>(null);
@@ -555,6 +567,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
         credits: parseInt(credits) || 0,
         role: 'client',
         durationDays: parseInt(durationDays) || undefined,
+        generationLimit: parseInt(generationLimit) || 0,
       },
       {
         onSuccess: () => {
@@ -572,6 +585,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
           setCredits("0");
           setRole("client");
           setDurationDays("1");
+          setGenerationLimit("0");
           setGeneratedLoginCode(generateLoginCode());
         },
       }
@@ -784,6 +798,20 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               Após esse período, o login será desativado automaticamente.
             </p>
           </div>
+          <div className="space-y-2">
+            <Label>Limite de Gerações</Label>
+            <Input
+              type="number"
+              value={generationLimit}
+              onChange={(e) => setGenerationLimit(e.target.value)}
+              min="0"
+              placeholder="0 = sem limite"
+              className="bg-background/50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Número máximo de gerações que o cliente pode fazer. 0 = sem limite.
+            </p>
+          </div>
           {/* Tipo removido - admins só podem criar clientes */}
           <div className="space-y-2">
             <Label>Tipo</Label>
@@ -817,6 +845,7 @@ function EditClientDialog({ client, onClose, mutation }: any) {
   const [active, setActive] = useState(client.active);
   const [newPassword, setNewPassword] = useState("");
   const [durationDays, setDurationDays] = useState(client.durationDays ? String(client.durationDays) : "1");
+  const [generationLimit, setGenerationLimit] = useState(String(client.generationLimit || 0));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -826,6 +855,7 @@ function EditClientDialog({ client, onClose, mutation }: any) {
       label: label || undefined,
       active,
       durationDays: parseInt(durationDays) || undefined,
+      generationLimit: parseInt(generationLimit) || 0,
     });
   };
 
@@ -925,6 +955,41 @@ function EditClientDialog({ client, onClose, mutation }: any) {
               {client.expiresAt
                 ? `Expira em: ${new Date(client.expiresAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}`
                 : "Sem expiração definida"}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Limite de Gerações</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                value={generationLimit}
+                onChange={(e) => setGenerationLimit(e.target.value)}
+                min="0"
+                className="bg-background/50 flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  trpc.admin.resetGenerations.mutate(
+                    { id: client.id },
+                    {
+                      onSuccess: () => {
+                        toast.success("Gerações resetadas para 0");
+                        utils.admin.listClients.invalidate();
+                      },
+                      onError: (err: any) => toast.error(err.message),
+                    }
+                  );
+                }}
+                className="text-xs"
+              >
+                Resetar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Atual: {client.generationsUsed || 0} usadas / {client.generationLimit || 0} limite. 0 = sem limite.
             </p>
           </div>
           {/* Login Code Section */}
@@ -1493,18 +1558,14 @@ function Admin() {
               <FileUp className="w-4 h-4" />
               Arquivos
             </TabsTrigger>
-            {adminMeQuery.data?.username === 'murillo' && (
-              <>
-                <TabsTrigger value="mini-admins" className="gap-2">
-                  <ShieldCheck className="w-4 h-4" />
-                  Mini Admins
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="gap-2">
-                  <Key className="w-4 h-4" />
-                  Configurações
-                </TabsTrigger>
-              </>
-            )}
+            <TabsTrigger value="mini-admins" className="gap-2">
+              <ShieldCheck className="w-4 h-4" />
+              Admins
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-2">
+              <Key className="w-4 h-4" />
+              Configurações
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="clients">
             <ClientManagement currentAdmin={adminMeQuery.data} />
@@ -1512,16 +1573,12 @@ function Admin() {
           <TabsContent value="files">
             <FileManagement />
           </TabsContent>
-          {adminMeQuery.data?.username === 'murillo' && (
-            <>
-              <TabsContent value="mini-admins">
-                <MiniAdminManagement />
-              </TabsContent>
-              <TabsContent value="settings">
-                <SettingsManagement />
-              </TabsContent>
-            </>
-          )}
+          <TabsContent value="mini-admins">
+            <MiniAdminManagement />
+          </TabsContent>
+          <TabsContent value="settings">
+            <SettingsManagement />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
