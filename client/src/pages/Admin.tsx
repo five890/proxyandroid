@@ -1001,9 +1001,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               value={accessKeyInput}
               onChange={(e) => setAccessKeyInput(e.target.value)}
               onPaste={(e) => {
-                e.stopPropagation();
-                const pastedText = e.clipboardData.getData('text');
-                setAccessKeyInput((prev) => prev + pastedText);
+                // Allow default paste behavior
               }}
               placeholder={accessType === 'proxy_android' ? 'Obrigatória para Proxy Android' : 'Opcional'}
               className="bg-background/50"
@@ -1752,9 +1750,7 @@ function SettingsManagement() {
             value={globalAccessKey}
             onChange={(e) => setGlobalAccessKey(e.target.value)}
             onPaste={(e) => {
-              e.stopPropagation();
-              const pastedText = e.clipboardData.getData('text');
-              setGlobalAccessKey(pastedText);
+              // Allow default paste behavior
             }}
             placeholder="Ex: SHB-XXXX-XXXX-XXXX"
             className="flex-1 font-mono"

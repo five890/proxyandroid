@@ -114,15 +114,29 @@ export default function AntiScreenCapture() {
 
   // Block copy/cut/paste
   const handleCopy = useCallback((e: Event) => {
+    const target = e.target as HTMLElement;
+    // Allow copy/paste on input elements (password, text fields, etc.)
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+      return;
+    }
     e.preventDefault();
     toast.warning("Cópia de conteúdo bloqueada.");
   }, []);
 
   const handleCut = useCallback((e: Event) => {
+    const target = e.target as HTMLElement;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+      return;
+    }
     e.preventDefault();
   }, []);
 
   const handlePaste = useCallback((e: Event) => {
+    const target = e.target as HTMLElement;
+    // Always allow paste on input fields
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+      return;
+    }
     e.preventDefault();
   }, []);
 
