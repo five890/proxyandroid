@@ -547,7 +547,7 @@ export default function Dashboard() {
                 <span className="text-sm font-bold text-white">📱 Como Configurar o Proxy Android</span>
               </div>
               <p className="text-xs text-gray-400 mb-4">
-                Assista o tutorial abaixo para aprender como configurar o proxy no seu dispositivo.
+                Clique no botão abaixo para baixar o tutorial e aprender como configurar o proxy.
               </p>
               <a
                 href="https://www.mediafire.com/file/n53tty5h2lgm30a/6dff2a17-d9ff-4a07-ba31-0f0c582255f1.mov/file"
@@ -555,8 +555,8 @@ export default function Dashboard() {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-3 w-full p-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all duration-200 group"
               >
-                <Play className="w-5 h-5 group-hover:scale-110" />
-                Assistir Tutorial
+                <Download className="w-5 h-5 group-hover:animate-bounce" />
+                Baixar Tutorial
               </a>
             </Card>
           </>
