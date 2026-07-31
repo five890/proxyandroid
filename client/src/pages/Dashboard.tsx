@@ -361,7 +361,88 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ============ PROXY ANDROID PANEL ============ */}
+        {session.accessType === 'proxy_android' && (
+          <>
+            {/* APK Download Card */}
+            <Card className="p-5 mb-6 bg-gray-900/80 border-green-900/20">
+              <div className="flex items-center gap-2 mb-4">
+                <Download className="w-5 h-5 text-green-500" />
+                <span className="text-sm font-bold text-white">Proxy Android - Download do App</span>
+              </div>
+              <p className="text-xs text-gray-400 mb-4">
+                Baixe o aplicativo Proxy Android abaixo. Use a chave de acesso no app para configurar o proxy.
+              </p>
+              <a
+                href="https://www.mediafire.com/file/5f5mxtjp739rp9z/Proxy+Android.5.0.apk/file"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-3 w-full p-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-all duration-200 group"
+              >
+                <Download className="w-5 h-5 group-hover:animate-bounce" />
+                Baixar Proxy Android APK
+              </a>
+            </Card>
+
+            {/* Access Key Card - Always visible for Proxy Android */}
+            {session.accessKey && (
+              <Card className="p-5 mb-6 bg-gray-900/80 border-green-900/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <Key className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-medium text-white">Chave de Acesso</span>
+                </div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-gray-400">Use esta chave no app:</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs text-gray-400 hover:text-white"
+                    onClick={() => {
+                      navigator.clipboard.writeText(session.accessKey!);
+                      toast.success("Chave copiada!");
+                    }}
+                  >
+                    <Copy className="w-3 h-3" /> Copiar
+                  </Button>
+                </div>
+                <p className="text-sm font-mono font-bold text-green-400 bg-black/50 px-3 py-2 rounded-lg select-all">
+                  {session.accessKey}
+                </p>
+              </Card>
+            )}
+
+            {/* Generate Proxy Section */}
+            <Card className="p-5 mb-6 bg-gray-900/80 border-green-900/20">
+              <div className="flex items-center gap-2 mb-4">
+                <CreditCard className="w-4 h-4 text-green-500" />
+                <span className="text-sm font-medium text-white">Gerar Proxy</span>
+                <Badge variant="outline" className="ml-auto text-xs bg-green-500/10 text-green-400 border-green-500/30">
+                  {session.credits} créditos
+                </Badge>
+              </div>
+              {session.credits > 0 ? (
+                <Button
+                  onClick={handleActivate}
+                  disabled={activateMutation.isPending}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold gap-2"
+                >
+                  {activateMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</>
+                  ) : (
+                    <><Key className="w-4 h-4" /> Usar 1 Crédito e Gerar Proxy</>
+                  )}
+                </Button>
+              ) : (
+                <div className="p-3 rounded-lg bg-red-900/20 border border-red-600/30 text-center">
+                  <p className="text-xs text-red-400">Sem créditos disponíveis. Entre em contato com o administrador.</p>
+                </div>
+              )}
+            </Card>
+          </>
+        )}
+
         {/* Server Info + Activation URL + Access Key Card */}
+        {session.accessType !== 'proxy_android' && (
         <Card className="p-5 mb-6 bg-gray-900/80 border-red-900/20">
           <div className="flex items-center gap-2 mb-3">
             <Server className="w-4 h-4 text-red-500" />
@@ -428,8 +509,10 @@ export default function Dashboard() {
             </div>
           )}
         </Card>
+        )}
 
         {/* Key Expiration Warning */}
+        {session.accessType !== 'proxy_android' && (
         <div className="mb-6 flex items-start gap-3 p-4 rounded-lg bg-amber-900/20 border border-amber-600/30">
           <Clock className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
           <div>
@@ -439,6 +522,7 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
+        )}
 
         {/* Expiration Warning */}
         {session.expiresAt && new Date(session.expiresAt) < new Date(Date.now() + 24 * 60 * 60 * 1000) && (
@@ -465,7 +549,7 @@ export default function Dashboard() {
         </div>
 
         {/* No credits warning */}
-        {session.credits === 0 && (
+        {session.credits === 0 && session.accessType !== 'proxy_android' && (
           <div className="mb-6 flex items-start gap-3 p-4 rounded-lg bg-red-900/20 border border-red-600/30">
             <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
             <div>
@@ -477,62 +561,64 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Files Grid */}
-        {filesQuery.isLoading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
-          </div>
-        ) : filesQuery.data?.length === 0 ? (
-          <Card className="p-12 text-center bg-gray-900/80 border-red-900/20">
-            <File className="w-12 h-12 text-gray-600 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium text-white mb-2">
-              Nenhum arquivo disponível
-            </h3>
-            <p className="text-sm text-gray-400">
-              Aguarde o administrador disponibilizar os arquivos de instalação.
-            </p>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filesQuery.data?.map((file: any) => (
-              <Card
-                key={file.id}
-                className="p-6 bg-gray-900/80 border-red-900/20 hover:border-red-600/40 transition-all duration-300 group"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-red-600/10 flex items-center justify-center group-hover:bg-red-600/20 transition-colors">
-                    <File className="w-5 h-5 text-red-500" />
+        {/* Files Grid - only for Proxy iOS */}
+        {session.accessType !== 'proxy_android' && (
+          filesQuery.isLoading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+            </div>
+          ) : filesQuery.data?.length === 0 ? (
+            <Card className="p-12 text-center bg-gray-900/80 border-red-900/20">
+              <File className="w-12 h-12 text-gray-600 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium text-white mb-2">
+                Nenhum arquivo disponível
+              </h3>
+              <p className="text-sm text-gray-400">
+                Aguarde o administrador disponibilizar os arquivos de instalação.
+              </p>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filesQuery.data?.map((file: any) => (
+                <Card
+                  key={file.id}
+                  className="p-6 bg-gray-900/80 border-red-900/20 hover:border-red-600/40 transition-all duration-300 group"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-red-600/10 flex items-center justify-center group-hover:bg-red-600/20 transition-colors">
+                      <File className="w-5 h-5 text-red-500" />
+                    </div>
+                    <Badge variant="secondary" className="text-xs bg-gray-800 text-gray-300">
+                      {formatBytes(file.fileSize || 0)}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="text-xs bg-gray-800 text-gray-300">
-                    {formatBytes(file.fileSize || 0)}
-                  </Badge>
-                </div>
-                <h3 className="font-medium text-white mb-1 truncate">
-                  {file.originalName}
-                </h3>
-                {file.description && (
-                  <p className="text-xs text-gray-400 mb-4 line-clamp-2">
-                    {file.description}
-                  </p>
-                )}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800">
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(file.createdAt).toLocaleDateString("pt-BR")}
-                  </span>
-                  <Button
-                    size="sm"
-                    onClick={() => handleDownload(file.id)}
-                    disabled={downloadMutation.isPending || session.credits <= 0}
-                    className="bg-red-600 hover:bg-red-700 text-white gap-2"
-                  >
-                    <Download className="w-3 h-3" />
-                    Baixar
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+                  <h3 className="font-medium text-white mb-1 truncate">
+                    {file.originalName}
+                  </h3>
+                  {file.description && (
+                    <p className="text-xs text-gray-400 mb-4 line-clamp-2">
+                      {file.description}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800">
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(file.createdAt).toLocaleDateString("pt-BR")}
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDownload(file.id)}
+                      disabled={downloadMutation.isPending || session.credits <= 0}
+                      className="bg-red-600 hover:bg-red-700 text-white gap-2"
+                    >
+                      <Download className="w-3 h-3" />
+                      Baixar
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )
         )}
       </main>
 
