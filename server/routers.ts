@@ -232,26 +232,31 @@ export const appRouter = router({
       if (!credential) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Conta não encontrada' });
       }
-      if (credential.activated) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Esta conta já está ativada' });
-      }
       if (credential.credits < 1) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Você precisa de pelo menos 1 crédito para ativar sua conta' });
       }
 
       const activationSetting = await db.getSiteSetting('activation_url');
       const globalAccessKeySetting = await db.getSiteSetting('access_key');
-      const accessKey = credential.accessKey || globalAccessKeySetting?.value || null;
+      
+      // Se o cliente já tem uma accessKey salva (já ativou antes), mantém ela
+      // Só atualiza com a nova chave global se não tiver uma chave salva
+      let accessKey = credential.accessKey;
+      if (!accessKey) {
+        // Primeira ativação ou sem chave salva: usa a chave global atual
+        accessKey = globalAccessKeySetting?.value || null;
+      }
 
       await db.updateClientCredential(credential.id, {
         activated: true,
         credits: credential.credits - 1,
+        accessKey: accessKey || null,
       });
 
       await db.createCreditTransaction({
         credentialId: credential.id,
         amount: -1,
-        reason: 'Ativação de conta - Key utilizada',
+        reason: credential.activated ? 'Uso de crédito adicional - Key' : 'Ativação de conta - Key utilizada',
       });
 
       return { success: true, remainingCredits: credential.credits - 1, accessKey };
