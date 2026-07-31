@@ -67,6 +67,7 @@ async function createTables() {
       loginCode VARCHAR(32),
       role ENUM('client', 'admin', 'mini_admin') NOT NULL DEFAULT 'client',
       createdByMiniAdminId INT,
+      createdByAdmin VARCHAR(100),
       activated TINYINT(1) NOT NULL DEFAULT 0,
       accessKey TEXT,
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -89,6 +90,12 @@ async function createTables() {
     console.log("[DB] Added generationsUsed column");
   } catch (e: any) {
     if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] generationsUsed already exists");
+  }
+  try {
+    await connection.query(`ALTER TABLE client_credentials ADD COLUMN createdByAdmin VARCHAR(100)`);
+    console.log("[DB] Added createdByAdmin column");
+  } catch (e: any) {
+    if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] createdByAdmin already exists");
   }
 
   // files table

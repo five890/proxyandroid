@@ -222,6 +222,7 @@ export const appRouter = router({
           activated: credential.activated || false,
           activationUrl: credential.activated ? (activationSetting?.value || null) : null,
           accessKey,
+          createdByAdmin: credential.createdByAdmin || null,
         };
       } catch {
         return null;
@@ -396,6 +397,7 @@ export const appRouter = router({
         loginCode: c.loginCode,
         generationLimit: c.generationLimit || 0,
         generationsUsed: c.generationsUsed || 0,
+        createdByAdmin: c.createdByAdmin || null,
       }));
     }),
 
@@ -441,6 +443,7 @@ export const appRouter = router({
           accessKey: finalAccessKey,
           generationLimit: owner ? (input.generationLimit || 0) : 0,
           generationsUsed: 0,
+          createdByAdmin: ctx.adminSession.username,
         });
         return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey };
       }),
@@ -508,6 +511,11 @@ export const appRouter = router({
         reason: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Apenas o proprietário pode adicionar mais de 1 crédito
+        const owner = isOwner(ctx.adminSession);
+        if (!owner && input.amount > 1) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Administradores comuns só podem adicionar no máximo 1 crédito por vez.' });
+        }
         const credential = await db.getClientCredentialById(input.id);
         if (!credential) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });

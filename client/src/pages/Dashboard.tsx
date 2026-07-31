@@ -346,6 +346,12 @@ export default function Dashboard() {
           <p className="text-gray-400 text-sm">
             Seus arquivos de instalação estão disponíveis abaixo.
           </p>
+          {session.createdByAdmin && (
+            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-900/20 border border-blue-500/30">
+              <Shield className="w-3 h-3 text-blue-400" />
+              <span className="text-xs text-blue-400">Painel criado por: <strong>{session.createdByAdmin}</strong></span>
+            </div>
+          )}
         </div>
 
         {/* Server Info + Activation URL + Access Key Card */}

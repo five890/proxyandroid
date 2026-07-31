@@ -137,6 +137,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
               <TableHead>Usuário</TableHead>
               <TableHead>Código</TableHead>
               <TableHead>Label</TableHead>
+              <TableHead>Criado por</TableHead>
               <TableHead>Créditos</TableHead>
               <TableHead>Validade</TableHead>
               <TableHead>Status</TableHead>
@@ -170,6 +171,15 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                   )}
                 </TableCell>
                 <TableCell>{client.label || "—"}</TableCell>
+                <TableCell>
+                  {client.createdByAdmin ? (
+                    <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/30">
+                      {client.createdByAdmin}
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <CreditCard className="w-3 h-3 text-primary" />
@@ -346,6 +356,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
       {showCredits && (
         <CreditsDialog
           client={showCredits}
+          currentAdmin={currentAdmin}
           onClose={() => setShowCredits(null)}
           mutation={addCreditsMutation}
         />
@@ -1020,7 +1031,8 @@ function EditClientDialog({ client, onClose, mutation }: any) {
   );
 }
 
-function CreditsDialog({ client, onClose, mutation }: any) {
+function CreditsDialog({ client, currentAdmin, onClose, mutation }: any) {
+  const isOwner = currentAdmin?.username === 'murillo';
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
 
@@ -1075,30 +1087,36 @@ function CreditsDialog({ client, onClose, mutation }: any) {
             >
               +1
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => { setAmount("5"); setReason("Adição de créditos"); }}
-            >
-              +5
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => { setAmount("10"); setReason("Adição de créditos"); }}
-            >
-              +10
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => { setAmount((-client.credits).toString()); setReason("Zeramento de créditos"); }}
-            >
-              Zerar
-            </Button>
+            {isOwner && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setAmount("5"); setReason("Adição de créditos"); }}
+                >
+                  +5
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setAmount("10"); setReason("Adição de créditos"); }}
+                >
+                  +10
+                </Button>
+              </>
+            )}
+            {isOwner && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => { setAmount((-client.credits).toString()); setReason("Zeramento de créditos"); }}
+              >
+                Zerar
+              </Button>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>
