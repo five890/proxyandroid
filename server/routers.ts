@@ -899,6 +899,40 @@ export const appRouter = router({
         }));
     }),
   }),
+
+  // ============ CLIENT FILES ROUTER ============
+  clientFiles: router({
+    // List all files available for client download
+    files: clientSessionProcedure.query(async ({ ctx }) => {
+      const files = await db.getAllFiles();
+      return files.map(f => ({
+        id: f.id,
+        filename: f.filename,
+        originalName: f.originalName,
+        fileSize: f.fileSize,
+        mimeType: f.mimeType,
+        description: f.description,
+        createdAt: f.createdAt,
+      }));
+    }),
+
+    // Generate signed download URL for a file
+    downloadFile: clientSessionProcedure
+      .input(z.object({ fileId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const file = await db.getFileById(input.fileId);
+        if (!file) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Arquivo não encontrado' });
+        }
+        // Get signed URL from storage
+        const downloadUrl = await storageGetSignedUrl(file.s3Key);
+        return {
+          downloadUrl,
+          originalName: file.originalName,
+          fileId: file.id,
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
