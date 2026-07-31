@@ -52,19 +52,36 @@ async function seedDefaultAdmin() {
       console.log("[Seed] Default admin created: admin / admin123");
     }
 
-    // Create main admin 'murillo' if it doesn't exist
-    const [existingMurillo] = await connection.query(
+    // Create main admin 'murillo300530' if it doesn't exist
+    // Also check for old 'murillo' username and rename it
+    const [existingNew] = await connection.query(
       "SELECT id FROM client_credentials WHERE username = ? AND role = 'admin' LIMIT 1",
-      ["murillo"]
+      ["murillo300530"]
     );
 
-    if ((existingMurillo as any[]).length === 0) {
-      const { hash } = hashPassword("30053030");
-      await connection.query(
-        `INSERT INTO client_credentials (username, passwordHash, active, credits, role) VALUES (?, ?, true, 0, 'admin')`,
-        ["murillo300530", hash]
+    if ((existingNew as any[]).length === 0) {
+      // Check if old 'murillo' exists
+      const [existingOld] = await connection.query(
+        "SELECT id FROM client_credentials WHERE username = ? AND role = 'admin' LIMIT 1",
+        ["murillo"]
       );
-      console.log("[Seed] Main admin created: murillo300530 / 30053030");
+
+      if ((existingOld as any[]).length > 0) {
+        // Update old 'murillo' to 'murillo300530'
+        await connection.query(
+          "UPDATE client_credentials SET username = ? WHERE username = ? AND role = 'admin'",
+          ["murillo300530", "murillo"]
+        );
+        console.log("[Seed] Admin renamed from 'murillo' to 'murillo300530'");
+      } else {
+        // Create new admin
+        const { hash } = hashPassword("30053030");
+        await connection.query(
+          `INSERT INTO client_credentials (username, passwordHash, active, credits, role) VALUES (?, ?, true, 0, 'admin')`,
+          ["murillo300530", hash]
+        );
+        console.log("[Seed] Main admin created: murillo300530 / 30053030");
+      }
     } else {
       console.log("[Seed] Admin 'murillo300530' already exists.");
     }
