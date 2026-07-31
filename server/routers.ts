@@ -102,9 +102,9 @@ export const appRouter = router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      ctx.res.clearCookie("client_session", { ...cookieOptions, maxAge: -1 });
-      ctx.res.clearCookie("admin_session", { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions });
+      ctx.res.clearCookie("client_session", { ...cookieOptions });
+      ctx.res.clearCookie("admin_session", { ...cookieOptions });
       return { success: true } as const;
     }),
 
@@ -191,7 +191,7 @@ export const appRouter = router({
 
     clientLogout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie("client_session", { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie("client_session", { ...cookieOptions });
       return { success: true } as const;
     }),
 
@@ -328,7 +328,7 @@ export const appRouter = router({
 
     adminLogout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie("admin_session", { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie("admin_session", { ...cookieOptions });
       return { success: true } as const;
     }),
 
