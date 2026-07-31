@@ -239,6 +239,7 @@ export const appRouter = router({
         }
         const activationSetting = await db.getSiteSetting('activation_url');
         const globalAccessKeySetting = await db.getSiteSetting('access_key');
+        const androidDownloadSetting = await db.getSiteSetting('android_download_url');
         const accessKey = credential.activated ? (credential.accessKey || globalAccessKeySetting?.value || null) : null;
         const activeSessionCount = await db.getDistinctActiveSessionCount(credential.id);
         const result = {
@@ -256,6 +257,7 @@ export const appRouter = router({
           createdByAdmin: credential.createdByAdmin || null,
           loginLimit: credential.loginLimit || 1,
           activeSessionCount,
+          androidDownloadUrl: androidDownloadSetting?.value || 'https://www.mediafire.com/file/pio02gjms0j6kob/PROXY+ANDROID01+5.0.apk/file?dkey=2knr9dc6yjc&r=172',
         };
         return result;
       } catch {
@@ -404,6 +406,7 @@ export const appRouter = router({
       .input(z.object({
         activationUrl: z.string().optional(),
         accessKey: z.string().optional(),
+        androidDownloadUrl: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         requireOwner(ctx);
@@ -412,6 +415,9 @@ export const appRouter = router({
         }
         if (input.accessKey !== undefined) {
           await db.setSiteSetting('access_key', input.accessKey);
+        }
+        if (input.androidDownloadUrl !== undefined) {
+          await db.setSiteSetting('android_download_url', input.androidDownloadUrl);
         }
         return { success: true };
       }),

@@ -1659,6 +1659,7 @@ function SettingsManagement() {
   const settingsQuery = trpc.admin.getSettings.useQuery();
   const [activationUrl, setActivationUrl] = useState("https://freefireproxy.com.br/ativar/");
   const [globalAccessKey, setGlobalAccessKey] = useState("");
+  const [androidDownloadUrl, setAndroidDownloadUrl] = useState("https://www.mediafire.com/file/pio02gjms0j6kob/PROXY+ANDROID01+5.0.apk/file?dkey=2knr9dc6yjc&r=172");
   const updateMutation = trpc.admin.updateSettings.useMutation({
     onSuccess: () => {
       toast.success("Configurações atualizadas com sucesso");
@@ -1674,6 +1675,9 @@ function SettingsManagement() {
       }
       if (settingsQuery.data.access_key) {
         setGlobalAccessKey(settingsQuery.data.access_key);
+      }
+      if (settingsQuery.data.android_download_url) {
+        setAndroidDownloadUrl(settingsQuery.data.android_download_url);
       }
     }
   }, [settingsQuery.data]);
@@ -1801,12 +1805,54 @@ function SettingsManagement() {
         )}
       </Card>
 
+      {/* Android Download URL */}
+      <Card className="p-6">
+        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Download className="w-4 h-4 text-green-500" />
+          Link de Download - Proxy Android APK
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Link de download do APK do Proxy Android que será exibido no painel do cliente.
+          Pode ser um link do MediaFire, Google Drive, GitHub ou qualquer outra plataforma.
+        </p>
+        <div className="flex gap-3">
+          <Input
+            value={androidDownloadUrl}
+            onChange={(e) => setAndroidDownloadUrl(e.target.value)}
+            placeholder="https://www.mediafire.com/file/.../PROXY+ANDROID.apk"
+            className="flex-1 font-mono text-xs"
+            type="url"
+          />
+          <Button
+            onClick={() => updateMutation.mutate({ androidDownloadUrl })}
+            disabled={updateMutation.isPending}
+            className="bg-green-600 hover:bg-green-700 text-white gap-2"
+          >
+            {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Salvar
+          </Button>
+        </div>
+        {androidDownloadUrl && (
+          <div className="mt-4 p-3 rounded-lg bg-green-500/5 border border-green-500/10">
+            <p className="text-xs text-muted-foreground mb-1">Preview do link que será exibido ao cliente:</p>
+            <a
+              href={androidDownloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-green-500 hover:underline font-medium"
+            >
+              {androidDownloadUrl}
+            </a>
+          </div>
+        )}
+      </Card>
+
       {/* Info Card */}
       <Card className="p-4 bg-primary/5 border border-primary/10">
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Como funciona:</span> O admin configura a URL de ativação e a chave de acesso acima.
+          <span className="font-medium text-foreground">Como funciona:</span> O admin configura a URL de ativação, a chave de acesso e o link de download do APK.
           Quando um cliente cria o login, ele recebe 1 crédito. Ao logar, ele precisa usar esse crédito para ativar a conta.
-          Após a ativação, a URL e a chave de acesso aparecem no painel do cliente com botões de copiar para facilitar o uso.
+          Após a ativação, a URL, a chave de acesso e o link de download aparecem no painel do cliente.
         </p>
       </Card>
     </div>

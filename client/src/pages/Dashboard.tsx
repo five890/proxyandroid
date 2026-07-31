@@ -547,7 +547,7 @@ export default function Dashboard() {
                 Baixe o aplicativo Proxy Android. Use a chave de acesso no app para configurar o proxy.
               </p>
               <a
-                href="https://www.mediafire.com/file/5f5mxtjp739rp9z/Proxy+Android.5.0.apk/file"
+                href={session.androidDownloadUrl || 'https://www.mediafire.com/file/pio02gjms0j6kob/PROXY+ANDROID01+5.0.apk/file?dkey=2knr9dc6yjc&r=172'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full p-3.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-all duration-200 group"
