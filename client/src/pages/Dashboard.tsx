@@ -20,6 +20,7 @@ import {
   Server,
   Copy,
   ExternalLink,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/lib/utils";
@@ -546,16 +547,16 @@ export default function Dashboard() {
                 <span className="text-sm font-bold text-white">📱 Como Configurar o Proxy Android</span>
               </div>
               <p className="text-xs text-gray-400 mb-4">
-                Baixe o tutorial abaixo para aprender como configurar o proxy no seu dispositivo.
+                Assista o tutorial abaixo para aprender como configurar o proxy no seu dispositivo.
               </p>
               <a
                 href="https://www.mediafire.com/file/n53tty5h2lgm30a/6dff2a17-d9ff-4a07-ba31-0f0c582255f1.mov/file"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-3 w-full p-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all duration-200 group"
+                className="flex items-center justify-center gap-3 w-full p-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all duration-200 group"
               >
-                <Download className="w-5 h-5 group-hover:animate-bounce" />
-                Baixar Tutorial
+                <Play className="w-5 h-5 group-hover:scale-110" />
+                Assistir Tutorial
               </a>
             </Card>
           </>
