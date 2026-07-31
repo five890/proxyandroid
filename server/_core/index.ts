@@ -75,7 +75,9 @@ async function createTables() {
       lastLoginAt TIMESTAMP NULL,
       generationLimit INT NOT NULL DEFAULT 0,
       generationsUsed INT NOT NULL DEFAULT 0,
-      accessType ENUM('proxy_ios', 'proxy_android') NOT NULL DEFAULT 'proxy_ios'
+      accessType ENUM('proxy_ios', 'proxy_android') NOT NULL DEFAULT 'proxy_ios',
+      deviceType VARCHAR(32),
+      loginLimit INT NOT NULL DEFAULT 1
     )
   `);
 
