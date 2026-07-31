@@ -205,12 +205,20 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                   {client.expiresAt ? (
                     <div className="flex items-center gap-1">
                       <Clock className="w-3 h-3 text-amber-500" />
-                      <span className="text-xs text-amber-500">
+                      <span className={(() => {
+                        const timeLeft = new Date(client.expiresAt).getTime() - Date.now();
+                        if (timeLeft <= 0) return "text-red-500 font-bold";
+                        return "text-amber-500";
+                      })()}>
                         {(() => {
-                          const daysLeft = Math.floor((new Date(client.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                          if (daysLeft <= 0) return "Expirado";
-                          if (daysLeft === 1) return "1 dia";
-                          return `${daysLeft} dias`;
+                          const timeLeft = new Date(client.expiresAt).getTime() - Date.now();
+                          if (timeLeft <= 0) return "Expirado";
+                          const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+                          if (hoursLeft >= 24) {
+                            const daysLeft = Math.floor(hoursLeft / 24);
+                            return `${daysLeft}d ${hoursLeft % 24}h`;
+                          }
+                          return `${hoursLeft}h`;
                         })()}
                       </span>
                     </div>
