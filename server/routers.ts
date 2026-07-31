@@ -396,8 +396,7 @@ export const appRouter = router({
         accessKey: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Só o proprietário pode criar clientes
-        requireOwner(ctx);
+        // Admins e o proprietário podem criar clientes
         const role = 'client';
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
@@ -434,8 +433,7 @@ export const appRouter = router({
         accessKey: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Só o proprietário pode editar clientes
-        requireOwner(ctx);
+        // Admins e proprietário podem editar clientes
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing && existing.id !== input.id) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
@@ -459,7 +457,6 @@ export const appRouter = router({
         password: z.string().min(6),
       }))
       .mutation(async ({ ctx, input }) => {
-        requireOwner(ctx);
         const { hash } = hashPassword(input.password);
         await db.updateClientCredential(input.id, { passwordHash: hash });
       }),
@@ -467,7 +464,6 @@ export const appRouter = router({
     regenerateLoginCode: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        requireOwner(ctx);
         const loginCode = generateLoginCode();
         await db.updateClientCredential(input.id, { loginCode });
         return { loginCode };
@@ -476,7 +472,6 @@ export const appRouter = router({
     toggleClientActive: adminProcedure
       .input(z.object({ id: z.number(), active: z.boolean() }))
       .mutation(async ({ ctx, input }) => {
-        requireOwner(ctx);
         await db.updateClientCredentialActive(input.id, input.active);
       }),
 
@@ -487,7 +482,6 @@ export const appRouter = router({
         reason: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        requireOwner(ctx);
         const credential = await db.getClientCredentialById(input.id);
         if (!credential) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
@@ -508,14 +502,12 @@ export const appRouter = router({
     resetClientDevice: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        requireOwner(ctx);
         await db.resetClientDevice(input.id);
       }),
 
     deleteClient: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        requireOwner(ctx);
         const client = await db.getClientCredentialById(input.id);
         if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Cliente não encontrado' });
         // Proteção: não pode deletar o próprio proprietário
