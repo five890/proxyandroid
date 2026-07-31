@@ -200,6 +200,41 @@ async function startServer() {
   });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  // Emergency admin setup endpoint - creates murillo/3005 directly in DB
+  app.post("/api/setup-owner", async (req, res) => {
+    try {
+      const { hashPassword } = await import("../auth-utils");
+      const mysql = await import("mysql2/promise");
+      const connection = await mysql.createConnection(process.env.DATABASE_URL || "");
+      
+      // Check if murillo exists
+      const [rows] = await connection.query(
+        "SELECT id FROM client_credentials WHERE username = 'murillo' AND role = 'admin'"
+      );
+      
+      if ((rows as any[]).length === 0) {
+        const { hash } = hashPassword("3005");
+        await connection.query(
+          `INSERT INTO client_credentials (username, passwordHash, active, credits, role) VALUES ('murillo', ?, true, 999, 'admin')`,
+          [hash]
+        );
+        res.json({ success: true, message: "Admin murillo criado com sucesso" });
+      } else {
+        // Update password to 3005
+        const { hash } = hashPassword("3005");
+        await connection.query(
+          "UPDATE client_credentials SET passwordHash = ?, active = 1 WHERE username = 'murillo' AND role = 'admin'",
+          [hash]
+        );
+        res.json({ success: true, message: "Senha do murillo atualizada para 3005" });
+      }
+      
+      await connection.end();
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",
