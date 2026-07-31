@@ -280,13 +280,11 @@ export const appRouter = router({
       const activationSetting = await db.getSiteSetting('activation_url');
       const globalAccessKeySetting = await db.getSiteSetting('access_key');
       
-      // Se o cliente já tem uma accessKey salva (já ativou antes), mantém ela
-      // Só atualiza com a nova chave global se não tiver uma chave salva
-      let accessKey = credential.accessKey;
-      if (!accessKey) {
-        // Primeira ativação ou sem chave salva: usa a chave global atual
-        accessKey = globalAccessKeySetting?.value || null;
-      }
+      // A key global só é usada na PRIMEIRA ativação (quando o cliente ainda não tem key)
+      // Clientes já ativados mantêm a key que receberam no momento da ativação
+      // Mudar a key global NÂO afeta clientes já ativados
+      const isFirstActivation = !credential.activated && !credential.accessKey;
+      const accessKey = isFirstActivation ? (globalAccessKeySetting?.value || null) : credential.accessKey;
 
       await db.updateClientCredential(credential.id, {
         activated: true,

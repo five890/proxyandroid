@@ -868,55 +868,168 @@ export default function Dashboard() {
 
       {/* Access Key Dialog after activation */}
       <Dialog open={showAccessKey} onOpenChange={setShowAccessKey}>
-        <DialogContent className="bg-gray-950 border-gray-800 max-w-sm mx-4">
+        <DialogContent className="bg-gray-950 border-gray-800 max-w-md mx-4 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
-              <Key className="w-5 h-5 text-red-500" />
-              Chave de Acesso Ativada
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              Acesso Ativado com Sucesso!
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-              <p className="text-xs text-gray-400 mb-2">Use esta chave para acessar o serviço:</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm text-red-400 font-mono break-all">{activatedAccessKey}</code>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    navigator.clipboard.writeText(activatedAccessKey || '');
-                    toast.success("Chave copiada!");
-                  }}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {activatedAccessUrl && session?.accessType !== 'proxy_android' && (
-              <div className="bg-gray-900 rounded-lg p-4 border border-red-900/30">
-                <p className="text-xs text-gray-400 mb-2">Link de ativação:</p>
+            {session?.accessType === 'proxy_android' ? (
+              // ANDROID: mostra apenas a chave
+              <div className="bg-gray-900 rounded-lg p-4 border border-green-800/30">
+                <p className="text-xs text-gray-400 mb-2">Chave de Acesso:</p>
                 <div className="flex items-center gap-2">
-                  <a
-                    href={activatedAccessUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 text-sm text-red-400 hover:underline font-medium"
-                  >
-                    {activatedAccessUrl}
-                  </a>
+                  <code className="flex-1 text-sm text-green-400 font-mono break-all">{activatedAccessKey}</code>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      navigator.clipboard.writeText(activatedAccessUrl || '');
-                      toast.success("Link copiado!");
+                      navigator.clipboard.writeText(activatedAccessKey || '');
+                      toast.success("Chave copiada!");
                     }}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
+            ) : (
+              // iOS: mostra Key + Link + Servidores
+              <>
+                {/* Chave de Acesso */}
+                <div className="bg-gray-900 rounded-lg p-4 border border-red-900/30">
+                  <p className="text-xs text-gray-400 mb-2">Chave de Acesso:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-sm text-red-400 font-mono break-all">{activatedAccessKey}</code>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        navigator.clipboard.writeText(activatedAccessKey || '');
+                        toast.success("Chave copiada!");
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Link de Ativação */}
+                {activatedAccessUrl && (
+                  <div className="bg-gray-900 rounded-lg p-4 border border-red-900/30">
+                    <p className="text-xs text-gray-400 mb-2">Link de Ativação:</p>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={activatedAccessUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 text-xs text-red-400 hover:underline font-medium break-all"
+                      >
+                        {activatedAccessUrl}
+                      </a>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          navigator.clipboard.writeText(activatedAccessUrl || '');
+                          toast.success("Link copiado!");
+                        }}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Servidores */}
+                <div className="bg-gray-900 rounded-lg p-4 border border-red-900/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Server className="w-4 h-4 text-red-500" />
+                    <p className="text-xs font-medium text-white">Servidores Proxy iOS</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-black/40 border border-gray-800">
+                      <div>
+                        <span className="text-[10px] text-gray-500">IP:</span>
+                        <span className="text-xs font-mono font-semibold text-white ml-2">2.24.121.175</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          navigator.clipboard.writeText("2.24.121.175");
+                          toast.success("IP copiado!");
+                        }}
+                        className="h-6 w-6 text-gray-400 hover:text-white"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-black/40 border border-gray-800">
+                      <div>
+                        <span className="text-[10px] text-gray-500">Porta:</span>
+                        <span className="text-xs font-mono font-semibold text-white ml-2">9999</span>
+                        <span className="text-[10px] text-gray-500 ml-2">- Hs Pecoço</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          navigator.clipboard.writeText("9999");
+                          toast.success("Porta copiada!");
+                        }}
+                        className="h-6 w-6 text-gray-400 hover:text-white"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-black/40 border border-gray-800">
+                      <div>
+                        <span className="text-[10px] text-gray-500">Porta:</span>
+                        <span className="text-xs font-mono font-semibold text-white ml-2">9997</span>
+                        <span className="text-[10px] text-gray-500 ml-2">- Hs Peito</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          navigator.clipboard.writeText("9997");
+                          toast.success("Porta copiada!");
+                        }}
+                        className="h-6 w-6 text-gray-400 hover:text-white"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-black/40 border border-gray-800">
+                      <div>
+                        <span className="text-[10px] text-gray-500">Porta:</span>
+                        <span className="text-xs font-mono font-semibold text-white ml-2">9998</span>
+                        <span className="text-[10px] text-gray-500 ml-2">- Hs Alto</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          navigator.clipboard.writeText("9998");
+                          toast.success("Porta copiada!");
+                        }}
+                        className="h-6 w-6 text-gray-400 hover:text-white"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Aviso */}
+                <div className="p-3 rounded-lg bg-amber-900/20 border border-amber-600/30">
+                  <p className="text-[11px] text-amber-400">
+                    As keys podem expirar entre <span className="font-semibold text-white">1 a 6 horas antes</span> do prazo final. Não compartilhe sua key com outras pessoas.
+                  </p>
+                </div>
+              </>
             )}
 
             <Button
