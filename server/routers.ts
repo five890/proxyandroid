@@ -338,8 +338,9 @@ export const appRouter = router({
 
   // ============ ADMIN PROCEDURES ============
   admin: router({
-    // Settings CRUD
-    getSettings: adminProcedure.query(async () => {
+    // Settings CRUD (SÓ PROPRIETÁRIO)
+    getSettings: adminProcedure.query(async ({ ctx }) => {
+      requireOwner(ctx);
       const settings = await db.getAllSiteSettings();
       const map: Record<string, string> = {};
       settings.forEach(s => { map[s.key] = s.value || ''; });
@@ -351,7 +352,8 @@ export const appRouter = router({
         activationUrl: z.string().optional(),
         accessKey: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         if (input.activationUrl !== undefined) {
           await db.setSiteSetting('activation_url', input.activationUrl);
         }
@@ -547,7 +549,8 @@ export const appRouter = router({
       }),
 
     // File management
-    listFiles: adminProcedure.query(async () => {
+    listFiles: adminProcedure.query(async ({ ctx }) => {
+      requireOwner(ctx);
       const allFiles = await db.getAllFiles();
       return allFiles;
     }),
@@ -561,6 +564,7 @@ export const appRouter = router({
         description: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         const buffer = Buffer.from(input.data, 'base64');
         const key = `files/${input.filename}`;
         const result = await storagePut(key, buffer, input.mimeType);
@@ -578,12 +582,14 @@ export const appRouter = router({
 
     deleteFile: adminProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         await db.deleteFileRecord(input.id);
       }),
 
     // ============ GERENCIAMENTO DE ADMINS (SÓ PROPRIETÁRIO) ============
     listAdmins: adminProcedure.query(async ({ ctx }) => {
+      requireOwner(ctx);
       // Todos os admins podem ver a lista, mas IPs são protegidos
       const creds = await db.getAllClientCredentials();
       const owner = isOwner(ctx.adminSession);
@@ -607,6 +613,7 @@ export const appRouter = router({
         password: z.string().min(6),
       }))
       .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
@@ -629,6 +636,7 @@ export const appRouter = router({
     deleteAdmin: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         const admin = await db.getClientCredentialById(input.id);
         if (!admin) throw new TRPCError({ code: 'NOT_FOUND', message: 'Admin não encontrado' });
         // Não pode deletar o próprio proprietário
@@ -641,6 +649,7 @@ export const appRouter = router({
 
     // Mini admin management (SÓ PROPRIETÁRIO)
     listMiniAdmins: adminProcedure.query(async ({ ctx }) => {
+      requireOwner(ctx);
       const creds = await db.getAllClientCredentials();
       const owner = isOwner(ctx.adminSession);
       return creds
@@ -660,6 +669,7 @@ export const appRouter = router({
         password: z.string().min(6),
       }))
       .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         const existing = await db.getClientCredentialByUsername(input.username);
         if (existing) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Este usuário já existe' });
@@ -682,6 +692,7 @@ export const appRouter = router({
     deleteMiniAdmin: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         const miniAdmin = await db.getClientCredentialById(input.id);
         if (!miniAdmin) throw new TRPCError({ code: 'NOT_FOUND', message: 'Mini admin não encontrado' });
         if (miniAdmin.role === 'admin') throw new TRPCError({ code: 'FORBIDDEN', message: 'Não é possível excluir um administrador principal' });
@@ -691,6 +702,7 @@ export const appRouter = router({
     toggleMiniAdminActive: adminProcedure
       .input(z.object({ id: z.number(), active: z.boolean() }))
       .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
         await db.updateClientCredentialActive(input.id, input.active);
       }),
   }),
