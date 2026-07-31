@@ -431,7 +431,7 @@ export const appRouter = router({
           username: input.username,
           passwordHash: hash,
           label: input.label || null,
-          credits: 1,
+          credits: owner ? (input.credits || 1) : 1,
           active: true,
           role,
           durationDays: finalDurationDays,
