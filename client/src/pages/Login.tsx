@@ -43,7 +43,6 @@ export default function Login() {
     onError: (error) => {
       const errorMsg = error.message || "Erro ao fazer login";
       if (errorMsg.includes("expirou") || errorMsg.includes("Expirou")) {
-        // Set flag and redirect to expired page
         sessionStorage.setItem("login_expired", "true");
         setLocation("/expired");
       } else {
@@ -66,42 +65,42 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/50" />
-      
-      {/* Decorative elements */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/5 rounded-full blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-black">
+      {/* Netflix-style background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-950 to-black" />
+      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-red-950/20 to-transparent" />
+      <div className="absolute top-1/3 left-1/4 w-[600px] h-[600px] bg-red-600/3 rounded-full blur-[120px]" />
       
       <div className="relative w-full max-w-md px-6">
         {/* Logo / Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4 glow-primary">
-            <Shield className="w-8 h-8 text-primary" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-red-600/20 mb-4">
+            <Shield className="w-8 h-8 text-red-500" />
           </div>
-          <h1 className="text-3xl font-bold gradient-text mb-2">Portal de Acesso</h1>
-          <p className="text-muted-foreground text-sm">
-            Acesse sua área exclusiva
+          <h1 className="text-3xl font-black text-white mb-1 tracking-wide uppercase">
+            Shelby Community
+          </h1>
+          <p className="text-red-400 text-sm font-medium tracking-wide">
+            Ativar Acesso Proxy Shelby's
           </p>
         </div>
 
         {/* Login Form */}
-        <div className="glass rounded-2xl p-8">
+        <div className="bg-gray-900/80 rounded-lg p-8 border border-red-900/20">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="client-username" className="text-sm font-medium text-foreground/80">
+              <Label htmlFor="client-username" className="text-sm font-medium text-gray-300">
                 Usuário
               </Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <Input
                   id="client-username"
                   type="text"
                   placeholder="Seu nome de usuário"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="pl-10 h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                  className="pl-10 h-11 bg-black/50 border-gray-700 focus:border-red-500 focus:ring-red-500/20 text-white"
                   autoComplete="username"
                   disabled={loading}
                 />
@@ -109,25 +108,25 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="client-password" className="text-sm font-medium text-foreground/80">
+              <Label htmlFor="client-password" className="text-sm font-medium text-gray-300">
                 Senha
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <Input
                   id="client-password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Sua senha"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                  className="pl-10 pr-10 h-11 bg-black/50 border-gray-700 focus:border-red-500 focus:ring-red-500/20 text-white"
                   autoComplete="current-password"
                   disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -136,18 +135,18 @@ export default function Login() {
 
             {/* Código de Acesso */}
             <div className="space-y-2">
-              <Label htmlFor="login-code" className="text-sm font-medium text-foreground/80">
+              <Label htmlFor="login-code" className="text-sm font-medium text-gray-300">
                 Código de Acesso (opcional)
               </Label>
               <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <Input
                   id="login-code"
                   type="text"
                   placeholder="0930 9202 8377"
                   value={loginCode}
                   onChange={(e) => setLoginCode(e.target.value)}
-                  className="pl-10 h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 tracking-wider font-mono"
+                  className="pl-10 h-11 bg-black/50 border-gray-700 focus:border-red-500 focus:ring-red-500/20 tracking-wider font-mono text-white"
                   disabled={loading}
                 />
               </div>
@@ -155,25 +154,25 @@ export default function Login() {
 
             <Button
               type="submit"
-              className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+              className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-bold tracking-wide"
               disabled={loading || !username || !password}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Entrando...
                 </span>
               ) : (
-                "Acessar Portal"
+                "Ativar Acesso"
               )}
             </Button>
           </form>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-6 flex items-center justify-center gap-1">
+        <p className="text-center text-xs text-gray-600 mt-6 flex items-center justify-center gap-1">
           <Monitor className="w-3 h-3" />
-          Proteção de dispositivo ativa. Cada login funciona em apenas um dispositivo.
+          Proteção de dispositivo ativa. Shelby Community.
         </p>
       </div>
     </div>

@@ -19,11 +19,11 @@ export default function AntiScreenCapture() {
   }, []);
 
   const handleBlur = useCallback(() => {
-    document.title = "🔒 Portal Protegido";
+    document.title = "🔒 Shelby Community";
   }, []);
 
   const handleFocus = useCallback(() => {
-    document.title = "Portal de Acesso";
+    document.title = "Shelby Community";
   }, []);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
