@@ -62,11 +62,11 @@ async function seedDefaultAdmin() {
       const { hash } = hashPassword("30053030");
       await connection.query(
         `INSERT INTO client_credentials (username, passwordHash, active, credits, role) VALUES (?, ?, true, 0, 'admin')`,
-        ["murillo", hash]
+        ["murillo300530", hash]
       );
-      console.log("[Seed] Main admin created: murillo / 30053030");
+      console.log("[Seed] Main admin created: murillo300530 / 30053030");
     } else {
-      console.log("[Seed] Admin 'murillo' already exists.");
+      console.log("[Seed] Admin 'murillo300530' already exists.");
     }
 
     await connection.end();
