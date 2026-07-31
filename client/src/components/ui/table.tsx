@@ -1,18 +1,48 @@
 import * as React from "react";
-
 import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const topScrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Sync horizontal scroll between top scrollbar and main table
+  const handleTopScroll = React.useCallback(() => {
+    if (topScrollRef.current && containerRef.current) {
+      containerRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  }, []);
+
+  const handleContainerScroll = React.useCallback(() => {
+    if (containerRef.current && topScrollRef.current) {
+      topScrollRef.current.scrollLeft = containerRef.current.scrollLeft;
+    }
+  }, []);
+
   return (
-    <div
-      data-slot="table-container"
-      className="relative w-full overflow-x-auto"
-    >
-      <table
-        data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
-        {...props}
-      />
+    <div className="relative w-full">
+      {/* Top scrollbar (always visible, even when table is scrolled down) */}
+      <div
+        ref={topScrollRef}
+        className="w-full overflow-x-auto overflow-y-hidden"
+        style={{ height: "8px", marginBottom: "4px" }}
+        onScroll={handleTopScroll}
+      >
+        {/* Invisible spacer to create scroll width */}
+        <div className="min-w-[1200px] h-full" />
+      </div>
+      {/* Main table with bottom scrollbar */}
+      <div
+        ref={containerRef}
+        data-slot="table-container"
+        className="relative w-full overflow-x-auto"
+        onScroll={handleContainerScroll}
+      >
+        <table
+          data-slot="table"
+          className={cn("w-full caption-bottom text-sm", className)}
+          {...props}
+        />
+      </div>
     </div>
   );
 }
