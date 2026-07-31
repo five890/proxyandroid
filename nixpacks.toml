@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["export NVM_DIR=\"$HOME/.nvm\" && export PATH=\"/root/.local/share/pnpm:$PATH\" && npm install -g pnpm && pnpm install --frozen-lockfile"]
+cmds = ["npm install"]
 
 [phases.build]
-cmds = ["export PATH=\"/root/.local/share/pnpm:$PATH\" && pnpm run build"]
+cmds = ["npm run build"]
 
 [start]
-cmd = "export PATH=\"/root/.local/share/pnpm:$PATH\" && pnpm run start"
+cmd = "npm run start"
