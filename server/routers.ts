@@ -144,30 +144,34 @@ export const appRouter = router({
         const userAgent = ctx.req.headers['user-agent'] || '';
         const detectedType = input.deviceType || (userAgent.includes('Mobi') || userAgent.includes('Android') || userAgent.includes('iPhone') ? 'mobile' : 'pc');
 
+        // Session management with error handling - login should not fail if sessions table has issues
         const loginLimit = credential.loginLimit || 1;
-        const currentSessionCount = await db.getDistinctActiveSessionCount(credential.id);
+        try {
+          const currentSessionCount = await db.getDistinctActiveSessionCount(credential.id);
 
-        // Check if this device already has an active session (re-login on same device)
-        const existingSession = await db.getActiveSessions(credential.id);
-        const sameDevice = existingSession.some((s: any) => s.deviceFingerprint === currentFingerprint);
+          // Check if this device already has an active session (re-login on same device)
+          const existingSession = await db.getActiveSessions(credential.id);
+          const sameDevice = existingSession.some((s: any) => s.deviceFingerprint === currentFingerprint);
 
-        if (sameDevice) {
-          // Same device re-login: remove old sessions for this device, no limit check needed
-          await db.removeActiveSession(credential.id, currentFingerprint);
-        } else {
-          // New device: check login limit using distinct count
-          if (currentSessionCount >= loginLimit) {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: `Limite de ${loginLimit} dispositivo(s) atingido. Este login só pode ser usado em ${loginLimit} dispositivo(s) simultaneamente.`
-            });
+          if (sameDevice) {
+            await db.removeActiveSession(credential.id, currentFingerprint);
+          } else {
+            if (currentSessionCount >= loginLimit) {
+              throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: `Limite de ${loginLimit} dispositivo(s) atingido. Este login só pode ser usado em ${loginLimit} dispositivo(s) simultaneamente.`
+              });
+            }
           }
-        }
 
-        // Register active session
-        await db.updateClientIP(credential.id, currentIP);
-        await db.updateLastLogin(credential.id);
-        await db.createActiveSession({ credentialId: credential.id, deviceFingerprint: currentFingerprint, deviceIP: currentIP });
+          // Register active session
+          await db.updateClientIP(credential.id, currentIP);
+          await db.updateLastLogin(credential.id);
+          await db.createActiveSession({ credentialId: credential.id, deviceFingerprint: currentFingerprint, deviceIP: currentIP });
+        } catch (err) {
+          if (err instanceof TRPCError) throw err;
+          console.warn('[DB] Session management failed, proceeding without session tracking:', err.message);
+        }
 
         const cookieOptions = getSessionCookieOptions(ctx.req);
         const sessionData = JSON.stringify({
