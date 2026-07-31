@@ -618,14 +618,6 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
             <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-primary">Código de Acesso</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(createdCredentials.loginCode, "Código de acesso")}
-                  className="h-6 px-2 text-primary hover:bg-primary/20"
-                >
-                  <Copy className="w-3 h-3 mr-1" /> Copiar
-                </Button>
               </div>
               <p className="text-xl font-bold tracking-[0.15em] text-primary font-mono">
                 {createdCredentials.loginCode}
@@ -634,53 +626,15 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
 
             {/* Username */}
             <div className="p-3 rounded-lg bg-secondary/50 border border-border">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">Usuário</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(createdCredentials.username, "Usuário")}
-                  className="h-5 px-2 text-xs"
-                >
-                  <Copy className="w-3 h-3 mr-1" /> Copiar
-                </Button>
-              </div>
-              <p className="text-sm font-medium text-foreground">{createdCredentials.username}</p>
+              <span className="text-xs text-muted-foreground">Usuário</span>
+              <p className="text-sm font-medium text-foreground mt-1">{createdCredentials.username}</p>
             </div>
 
             {/* Password */}
             <div className="p-3 rounded-lg bg-secondary/50 border border-border">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">Senha</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(createdCredentials.password, "Senha")}
-                  className="h-5 px-2 text-xs"
-                >
-                  <Copy className="w-3 h-3 mr-1" /> Copiar
-                </Button>
-              </div>
-              <p className="text-sm font-medium text-foreground">{createdCredentials.password}</p>
+              <span className="text-xs text-muted-foreground">Senha</span>
+              <p className="text-sm font-medium text-foreground mt-1">{createdCredentials.password}</p>
             </div>
-
-            {/* Access Key */}
-            {createdCredentials.accessKey && (
-              <div className="p-3 rounded-lg bg-gold/10 border border-gold/20">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-gold">Chave de Acesso</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(createdCredentials.accessKey, "Chave de acesso")}
-                    className="h-5 px-2 text-xs text-gold"
-                  >
-                    <Copy className="w-3 h-3 mr-1" /> Copiar
-                  </Button>
-                </div>
-                <p className="text-sm font-mono text-gold font-semibold">{createdCredentials.accessKey}</p>
-              </div>
-            )}
 
             {/* Info */}
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
@@ -689,18 +643,16 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
               </p>
             </div>
 
-            {/* Copy all */}
+            {/* Single Copy Button - copia usuário + senha + código */}
             <div className="pt-2 border-t border-border">
               <Button
-                variant="outline"
-                size="sm"
+                className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                 onClick={() => {
-                  const all = `Login: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}${createdCredentials.accessKey ? `\nChave: ${createdCredentials.accessKey}` : ""}`;
-                  copyToClipboard(all, "Todas as credenciais");
+                  const all = `Usuário: ${createdCredentials.username}\nSenha: ${createdCredentials.password}\nCódigo: ${createdCredentials.loginCode}`;
+                  copyToClipboard(all, "Credenciais");
                 }}
-                className="w-full gap-2"
               >
-                <Copy className="w-3 h-3" /> Copiar Todas as Credenciais
+                <Copy className="w-4 h-4" /> Copiar Login e Senha
               </Button>
             </div>
           </div>
