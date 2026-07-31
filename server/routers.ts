@@ -375,10 +375,10 @@ export const appRouter = router({
         role: c.role,
         durationDays: c.durationDays,
         expiresAt: c.expiresAt,
-        // IP só visível para o proprietário
-        deviceFingerprint: owner ? c.deviceFingerprint : null,
-        deviceIP: owner ? c.deviceIP : null,
-        deviceLockedAt: owner ? c.deviceLockedAt : null,
+        // IP e dados do dispositivo do proprietário nunca são exibidos
+        deviceFingerprint: (owner && c.username !== 'murillo') ? c.deviceFingerprint : null,
+        deviceIP: null,
+        deviceLockedAt: (owner && c.username !== 'murillo') ? c.deviceLockedAt : null,
         lastLoginAt: owner ? c.lastLoginAt : null,
         createdAt: c.createdAt,
         loginCode: c.loginCode,
@@ -580,9 +580,9 @@ export const appRouter = router({
           username: c.username,
           active: c.active,
           createdAt: c.createdAt.toISOString(),
-          // IP só visível para o proprietário
-          deviceIP: owner ? c.deviceIP : null,
-          deviceFingerprint: owner ? c.deviceFingerprint : null,
+          // IP do proprietário nunca é exibido
+          deviceIP: (owner && c.username !== 'murillo') ? c.deviceIP : null,
+          deviceFingerprint: (owner && c.username !== 'murillo') ? c.deviceFingerprint : null,
           lastLoginAt: owner ? c.lastLoginAt : null,
         }));
     }),
@@ -640,7 +640,7 @@ export const appRouter = router({
           username: c.username,
           active: c.active,
           createdAt: c.createdAt.toISOString(),
-          deviceIP: owner ? c.deviceIP : null,
+          deviceIP: (owner && c.username !== 'murillo') ? c.deviceIP : null,
         }));
     }),
 

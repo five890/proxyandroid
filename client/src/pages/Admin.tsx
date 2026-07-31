@@ -140,7 +140,6 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
               <TableHead>Validade</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Dispositivo</TableHead>
-              <TableHead>IP</TableHead>
               <TableHead>Último Acesso</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -215,17 +214,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
                     <span className="text-xs text-muted-foreground">Nenhum</span>
                   )}
                 </TableCell>
-                <TableCell>
-                  {client.username === 'murillo' ? (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  ) : client.deviceIP ? (
-                    <span className="text-xs font-mono text-primary bg-primary/5 px-2 py-1 rounded border border-primary/20">
-                      {client.deviceIP}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
-                </TableCell>
+
                 <TableCell>
                   <span className="text-xs text-muted-foreground">
                     {client.lastLoginAt
