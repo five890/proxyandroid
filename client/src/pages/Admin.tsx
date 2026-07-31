@@ -45,6 +45,7 @@ import {
   RefreshCw,
   Copy,
   Key,
+  ClipboardPaste,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -1558,7 +1559,36 @@ function SettingsManagement() {
             onChange={(e) => setGlobalAccessKey(e.target.value)}
             placeholder="Ex: SHB-XXXX-XXXX-XXXX"
             className="flex-1 font-mono"
+            type="text"
+            autoComplete="off"
           />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 text-gray-400 hover:text-white"
+            onClick={() => {
+              navigator.clipboard.writeText(globalAccessKey);
+              toast.success("Chave copiada!");
+            }}
+          >
+            <Copy className="w-4 h-4" /> Copiar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 text-gray-400 hover:text-white"
+            onClick={async () => {
+              try {
+                const text = await navigator.clipboard.readText();
+                setGlobalAccessKey(text);
+                toast.success("Chave colada!");
+              } catch {
+                toast.error("Não foi possível acessar a área de transferência. Cole manualmente.");
+              }
+            }}
+          >
+            <ClipboardPaste className="w-4 h-4" /> Colar
+          </Button>
           <Button
             onClick={handleSaveAccessKey}
             disabled={updateMutation.isPending}
