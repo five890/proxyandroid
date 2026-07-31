@@ -209,7 +209,8 @@ export const appRouter = router({
         }
         const activationSetting = await db.getSiteSetting('activation_url');
         const globalAccessKeySetting = await db.getSiteSetting('access_key');
-        const accessKey = credential.accessKey || globalAccessKeySetting?.value || null;
+        // Só retorna accessKey se a conta já foi ativada
+        const accessKey = credential.activated ? (credential.accessKey || globalAccessKeySetting?.value || null) : null;
         return {
           id: credential.id,
           username: credential.username,
