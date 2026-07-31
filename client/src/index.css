@@ -47,10 +47,22 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+  }
+
+  input, textarea {
+    -webkit-user-select: auto;
+    user-select: auto;
   }
 }
 
@@ -104,4 +116,18 @@
 * {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Anti-screenshot / Anti-print CSS */
+@media print {
+  html, body {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
+/* Block drag on images */
+img {
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
