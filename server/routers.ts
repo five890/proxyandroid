@@ -220,7 +220,7 @@ export const appRouter = router({
           expiresAt: credential.expiresAt ? credential.expiresAt.toISOString() : null,
           durationDays: credential.durationDays,
           activated: credential.activated || false,
-          activationUrl: activationSetting?.value || null,
+          activationUrl: credential.activated ? (activationSetting?.value || null) : null,
           accessKey,
         };
       } catch {
@@ -260,7 +260,7 @@ export const appRouter = router({
         reason: credential.activated ? 'Uso de crédito adicional - Key' : 'Ativação de conta - Key utilizada',
       });
 
-      return { success: true, remainingCredits: credential.credits - 1, accessKey };
+      return { success: true, remainingCredits: credential.credits - 1, accessKey, activationUrl: activationSetting?.value || null };
     }),
 
     // ============ ADMIN AUTH ============

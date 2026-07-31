@@ -85,6 +85,7 @@ export default function Dashboard() {
 
   // Activate account mutation
   const [activatedAccessKey, setActivatedAccessKey] = React.useState<string | null>(null);
+  const [activatedAccessUrl, setActivatedAccessUrl] = React.useState<string | null>(null);
   const [showAccessKey, setShowAccessKey] = React.useState(false);
 
   const activateMutation = trpc.auth.activateAccount.useMutation({
@@ -92,6 +93,7 @@ export default function Dashboard() {
       toast.success("Conta ativada com sucesso! Seus arquivos agora estão disponíveis.");
       if (data.accessKey) {
         setActivatedAccessKey(data.accessKey);
+        setActivatedAccessUrl(data.activationUrl || null);
         setShowAccessKey(true);
       }
       utils.auth.clientMe.invalidate();
@@ -547,6 +549,33 @@ export default function Dashboard() {
                 </Button>
               </div>
             </div>
+
+            {activatedAccessUrl && (
+              <div className="bg-gray-900 rounded-lg p-4 border border-red-900/30">
+                <p className="text-xs text-gray-400 mb-2">Link de ativação:</p>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={activatedAccessUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-sm text-red-400 hover:underline font-medium"
+                  >
+                    {activatedAccessUrl}
+                  </a>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      navigator.clipboard.writeText(activatedAccessUrl || '');
+                      toast.success("Link copiado!");
+                    }}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <Button
               className="w-full bg-red-600 hover:bg-red-700 text-white"
               onClick={() => setShowAccessKey(false)}
