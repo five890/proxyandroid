@@ -903,8 +903,14 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
             <Input
               value={accessKeyInput}
               onChange={(e) => setAccessKeyInput(e.target.value)}
+              onPaste={(e) => {
+                e.stopPropagation();
+                const pastedText = e.clipboardData.getData('text');
+                setAccessKeyInput((prev) => prev + pastedText);
+              }}
               placeholder={accessType === 'proxy_android' ? 'Obrigatória para Proxy Android' : 'Opcional'}
               className="bg-background/50"
+              autoComplete="off"
             />
             {accessType === 'proxy_android' && !accessKeyInput.trim() && (
               <p className="text-xs text-red-500">A chave de acesso é obrigatória para Proxy Android.</p>
@@ -1570,6 +1576,11 @@ function SettingsManagement() {
           <Input
             value={globalAccessKey}
             onChange={(e) => setGlobalAccessKey(e.target.value)}
+            onPaste={(e) => {
+              e.stopPropagation();
+              const pastedText = e.clipboardData.getData('text');
+              setGlobalAccessKey(pastedText);
+            }}
             placeholder="Ex: SHB-XXXX-XXXX-XXXX"
             className="flex-1 font-mono"
             type="text"
