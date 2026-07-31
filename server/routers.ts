@@ -260,6 +260,9 @@ export const appRouter = router({
         accessKey: accessKey || null,
       });
 
+      // Incrementar gerações usadas
+      await db.incrementGenerationsUsed(credential.id);
+
       await db.createCreditTransaction({
         credentialId: credential.id,
         amount: -1,
