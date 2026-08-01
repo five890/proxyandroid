@@ -848,6 +848,23 @@ export const appRouter = router({
         requireOwner(ctx);
         await db.updateClientCredentialActive(input.id, input.active);
       }),
+
+    getClientAccessLogs: adminProcedure
+      .input(z.object({
+        credentialId: z.number(),
+        limit: z.number().int().min(1).max(500).default(100),
+      }))
+      .query(async ({ ctx, input }) => {
+        return db.getAccessLogs(input.credentialId, input.limit);
+      }),
+
+    getRecentAccessLogs: adminProcedure
+      .input(z.object({
+        limit: z.number().int().min(1).max(500).default(50),
+      }))
+      .query(async ({ ctx, input }) => {
+        return db.getRecentAccessLogs(input.limit);
+      }),
   }),
 
   // ============ MINI ADMIN ROUTER ============
@@ -978,25 +995,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ============ ACCESS LOGS ROUTER ============
-  admin: router({
-    getClientAccessLogs: adminProcedure
-      .input(z.object({
-        credentialId: z.number(),
-        limit: z.number().int().min(1).max(500).default(100),
-      }))
-      .query(async ({ ctx, input }) => {
-        return db.getAccessLogs(input.credentialId, input.limit);
-      }),
 
-    getRecentAccessLogs: adminProcedure
-      .input(z.object({
-        limit: z.number().int().min(1).max(500).default(50),
-      }))
-      .query(async ({ ctx, input }) => {
-        return db.getRecentAccessLogs(input.limit);
-      }),
-  }),
 
   // ============ CLIENT FILES ROUTER ============
   clientFiles: router({
