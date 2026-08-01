@@ -51,6 +51,7 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import MiniAdminPanel from "@/pages/MiniAdmin";
+import { ClientsPanel } from "@/components/ClientsPanel";
 
 // ============ CLIENT MANAGEMENT ============
 function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; username: string; role: string } }) {
@@ -129,22 +130,22 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Gerenciamento de Clientes</h2>
-          <p className="text-sm text-muted-foreground">
-            Crie e gerencie credenciais de acesso
-          </p>
-        </div>
-        <Button
-          onClick={() => setShowCreate(true)}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Cliente
-        </Button>
-      </div>
+      <ClientsPanel
+        clients={clientsQuery.data || []}
+        isLoading={clientsQuery.isLoading}
+        onCreateClick={() => setShowCreate(true)}
+        onEditClick={(client) => setEditingClient(client)}
+        onDeleteClick={(client) => {
+          if (window.confirm(`Tem certeza que deseja deletar ${client.username}?`)) {
+            deleteMutation.mutate({ id: client.id });
+          }
+        }}
+        onCreditsClick={(client) => setShowCredits(client)}
+        onHistoryClick={(client) => setShowHistory(client)}
+      />
 
+      {/* Hidden: Old Table Code - Kept for reference */}
+      <div className="hidden">
       <Card className="overflow-hidden">
         <Table>
           <TableHeader>
@@ -435,6 +436,7 @@ function ClientManagement({ currentAdmin }: { currentAdmin?: { id: number; usern
           </TableBody>
         </Table>
       </Card>
+      </div>
 
       {/* Create Client Dialog */}
       <CreateClientDialog open={showCreate} onClose={() => setShowCreate(false)} mutation={createMutation} />
