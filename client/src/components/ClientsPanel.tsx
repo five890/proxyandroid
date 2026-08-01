@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AccessHistoryModal } from "./AccessHistoryModal";
 import { 
   Plus, 
   Search, 
@@ -61,6 +62,8 @@ export function ClientsPanel({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [filterType, setFilterType] = useState<"all" | "proxy_android" | "proxy_ios">("all");
+  const [accessHistoryOpen, setAccessHistoryOpen] = useState(false);
+  const [selectedClientForHistory, setSelectedClientForHistory] = useState<Client | null>(null);
 
   // Filter and search clients
   const filteredClients = useMemo(() => {
@@ -378,6 +381,16 @@ export function ClientsPanel({
           <p className="text-gray-400 font-medium">Nenhum cliente encontrado</p>
           <p className="text-sm text-gray-500 mt-1">Tente ajustar seus filtros</p>
         </Card>
+      )}
+
+      {/* Access History Modal */}
+      {selectedClientForHistory && (
+        <AccessHistoryModal
+          open={accessHistoryOpen}
+          onOpenChange={setAccessHistoryOpen}
+          credentialId={selectedClientForHistory.id}
+          username={selectedClientForHistory.username}
+        />
       )}
     </div>
   );

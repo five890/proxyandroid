@@ -10,6 +10,7 @@ import {
   creditTransactions,
   siteSettings,
   activeSessions,
+  accessLogs,
   auditLogs,
   usageStats,
   adminPermissions,
@@ -20,6 +21,7 @@ import {
   type InsertCreditTransaction,
   type InsertSiteSetting,
   type InsertActiveSession,
+  type InsertAccessLog,
   type InsertAuditLog,
   type InsertUsageStat,
   type InsertAdminPermission,
@@ -494,4 +496,31 @@ export async function getSecurityEventsByIP(ipAddress: string, hours: number = 2
   if (!db) return [];
   const startTime = new Date(Date.now() - hours * 60 * 60 * 1000);
   return db.select().from(securityEvents).where(and(eq(securityEvents.ipAddress, ipAddress), gte(securityEvents.createdAt, startTime))).orderBy(desc(securityEvents.createdAt));
+}
+
+
+// ============ ACCESS LOGS ============
+export async function createAccessLog(data: InsertAccessLog) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(accessLogs).values(data);
+  return result;
+}
+
+export async function getAccessLogs(credentialId: number, limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(accessLogs).where(eq(accessLogs.credentialId, credentialId)).orderBy(desc(accessLogs.createdAt)).limit(limit);
+}
+
+export async function getAccessLogsByIP(ipAddress: string, limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(accessLogs).where(eq(accessLogs.ipAddress, ipAddress)).orderBy(desc(accessLogs.createdAt)).limit(limit);
+}
+
+export async function getRecentAccessLogs(limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(accessLogs).orderBy(desc(accessLogs.createdAt)).limit(limit);
 }

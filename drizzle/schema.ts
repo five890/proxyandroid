@@ -62,11 +62,32 @@ export const activeSessions = mysqlTable("active_sessions", {
   credentialId: int("credentialId").notNull(),
   deviceFingerprint: varchar("deviceFingerprint", { length: 512 }).notNull(),
   deviceIP: varchar("deviceIP", { length: 64 }),
+  deviceType: varchar("deviceType", { length: 32 }),
+  userAgent: text("userAgent"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  lastActivityAt: timestamp("lastActivityAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type ActiveSession = typeof activeSessions.$inferSelect;
 export type InsertActiveSession = typeof activeSessions.$inferInsert;
+
+/**
+ * Access logs - histórico detalhado de acessos
+ */
+export const accessLogs = mysqlTable("access_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  credentialId: int("credentialId").notNull(),
+  ipAddress: varchar("ipAddress", { length: 64 }).notNull(),
+  deviceType: varchar("deviceType", { length: 32 }).notNull(), // 'mobile' ou 'pc'
+  userAgent: text("userAgent"),
+  deviceFingerprint: varchar("deviceFingerprint", { length: 512 }),
+  loginStatus: varchar("loginStatus", { length: 20 }).notNull(), // 'success' ou 'failed'
+  failureReason: text("failureReason"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AccessLog = typeof accessLogs.$inferSelect;
+export type InsertAccessLog = typeof accessLogs.$inferInsert;
 
 /**
  * Downloadable files table

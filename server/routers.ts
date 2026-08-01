@@ -167,7 +167,23 @@ export const appRouter = router({
           // Register active session
           await db.updateClientIP(credential.id, currentIP);
           await db.updateLastLogin(credential.id);
-          await db.createActiveSession({ credentialId: credential.id, deviceFingerprint: currentFingerprint, deviceIP: currentIP });
+          await db.createActiveSession({ 
+            credentialId: credential.id, 
+            deviceFingerprint: currentFingerprint, 
+            deviceIP: currentIP,
+            deviceType: detectedType,
+            userAgent: userAgent,
+          });
+          
+          // Log access
+          await db.createAccessLog({
+            credentialId: credential.id,
+            ipAddress: currentIP,
+            deviceType: detectedType,
+            userAgent: userAgent,
+            deviceFingerprint: currentFingerprint,
+            loginStatus: 'success',
+          });
         } catch (err) {
           if (err instanceof TRPCError) throw err;
           console.warn('[DB] Session management failed, proceeding without session tracking:', err.message);
@@ -959,6 +975,26 @@ export const appRouter = router({
         requireOwner(ctx);
         await db.resolveSecurityEvent(input.eventId);
         return { success: true };
+      }),
+  }),
+
+  // ============ ACCESS LOGS ROUTER ============
+  admin: router({
+    getClientAccessLogs: adminProcedure
+      .input(z.object({
+        credentialId: z.number(),
+        limit: z.number().int().min(1).max(500).default(100),
+      }))
+      .query(async ({ ctx, input }) => {
+        return db.getAccessLogs(input.credentialId, input.limit);
+      }),
+
+    getRecentAccessLogs: adminProcedure
+      .input(z.object({
+        limit: z.number().int().min(1).max(500).default(50),
+      }))
+      .query(async ({ ctx, input }) => {
+        return db.getRecentAccessLogs(input.limit);
       }),
   }),
 
