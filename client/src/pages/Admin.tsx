@@ -814,6 +814,7 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
                   if (createdCredentials.accessType === 'proxy_android' && createdCredentials.accessKey) {
                     all += `\nChave: ${createdCredentials.accessKey}`;
                   }
+                  all += `\nLink de Ativação: https://proxyandroid-production.up.railway.app`;
                   copyToClipboard(all, "Credenciais");
                 }}
               >
