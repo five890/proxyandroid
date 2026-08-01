@@ -911,6 +911,57 @@ export const appRouter = router({
     }),
   }),
 
+  // ============ ANALYTICS & AUDIT ROUTER ============
+  analytics: router({
+    getSystemStats: adminProcedure.query(async ({ ctx }) => {
+      requireOwner(ctx);
+      return db.getSystemStats();
+    }),
+
+    getAuditLogs: adminProcedure
+      .input(z.object({
+        limit: z.number().int().min(1).max(500).default(100),
+        offset: z.number().int().min(0).default(0),
+      }))
+      .query(async ({ ctx, input }) => {
+        requireOwner(ctx);
+        return db.getAuditLogs(input.limit, input.offset);
+      }),
+
+    getClientUsageStats: adminProcedure
+      .input(z.object({
+        credentialId: z.number(),
+        days: z.number().int().min(1).max(365).default(30),
+      }))
+      .query(async ({ ctx, input }) => {
+        requireOwner(ctx);
+        return db.getUsageStats(input.credentialId, input.days);
+      }),
+
+    getSecurityEvents: adminProcedure
+      .input(z.object({
+        limit: z.number().int().min(1).max(500).default(100),
+        offset: z.number().int().min(0).default(0),
+      }))
+      .query(async ({ ctx, input }) => {
+        requireOwner(ctx);
+        return db.getSecurityEvents(input.limit, input.offset);
+      }),
+
+    getUnresolvedSecurityEvents: adminProcedure.query(async ({ ctx }) => {
+      requireOwner(ctx);
+      return db.getUnresolvedSecurityEvents();
+    }),
+
+    resolveSecurityEvent: adminProcedure
+      .input(z.object({ eventId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        requireOwner(ctx);
+        await db.resolveSecurityEvent(input.eventId);
+        return { success: true };
+      }),
+  }),
+
   // ============ CLIENT FILES ROUTER ============
   clientFiles: router({
     // List all files available for client download

@@ -1,6 +1,7 @@
 import { and, eq, desc, sql } from "drizzle-orm";
 
 import { drizzle } from "drizzle-orm/mysql2";
+import { eq as eqOp, desc as descOp } from 'drizzle-orm';
 import { InsertUser, users } from "../drizzle/schema";
 import {
   clientCredentials,
@@ -9,14 +10,23 @@ import {
   creditTransactions,
   siteSettings,
   activeSessions,
+  auditLogs,
+  usageStats,
+  adminPermissions,
+  securityEvents,
   type InsertClientCredential,
   type InsertFile,
   type InsertDownloadHistory,
   type InsertCreditTransaction,
   type InsertSiteSetting,
   type InsertActiveSession,
+  type InsertAuditLog,
+  type InsertUsageStat,
+  type InsertAdminPermission,
+  type InsertSecurityEvent,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -361,4 +371,127 @@ export async function getAllActiveSessionsForClient(credentialId: number) {
     [credentialId]
   );
   return rows[0] as any[];
+}
+
+// ============ AUDIT LOGS ============
+export async function createAuditLog(data: InsertAuditLog) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(auditLogs).values(data);
+  return result;
+}
+
+export async function getAuditLogs(limit: number = 100, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit).offset(offset);
+}
+
+export async function getAuditLogsByAdmin(adminId: number, limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(auditLogs).where(eq(auditLogs.adminId, adminId)).orderBy(desc(auditLogs.createdAt)).limit(limit);
+}
+
+export async function getAuditLogsByTarget(targetType: string, targetId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(auditLogs).where(and(eq(auditLogs.targetType, targetType), eq(auditLogs.targetId, targetId))).orderBy(desc(auditLogs.createdAt));
+}
+
+// ============ USAGE STATS ============
+export async function createUsageStat(data: InsertUsageStat) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(usageStats).values(data);
+  return result;
+}
+
+export async function getUsageStats(credentialId: number, days: number = 30) {
+  const db = await getDb();
+  if (!db) return [];
+  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return db.select().from(usageStats).where(and(eq(usageStats.credentialId, credentialId), gte(usageStats.date, startDate))).orderBy(desc(usageStats.date));
+}
+
+export async function getSystemStats() {
+  const db = await getDb();
+  if (!db) return null;
+  const totalClients = await db.select({ count: sql<number>`COUNT(*)` }).from(clientCredentials).where(eq(clientCredentials.role, 'client'));
+  const activeClients = await db.select({ count: sql<number>`COUNT(*)` }).from(clientCredentials).where(and(eq(clientCredentials.role, 'client'), eq(clientCredentials.active, true)));
+  const totalCredits = await db.select({ sum: sql<number>`SUM(credits)` }).from(clientCredentials).where(eq(clientCredentials.role, 'client'));
+  const totalLogins = await db.select({ count: sql<number>`COUNT(*)` }).from(activeSessions);
+  
+  return {
+    totalClients: Number(totalClients[0]?.count || 0),
+    activeClients: Number(activeClients[0]?.count || 0),
+    totalCredits: Number(totalCredits[0]?.sum || 0),
+    totalActiveSessions: Number(totalLogins[0]?.count || 0),
+  };
+}
+
+// ============ ADMIN PERMISSIONS ============
+export async function createAdminPermission(data: InsertAdminPermission) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(adminPermissions).values(data);
+  return result;
+}
+
+export async function getAdminPermissions(adminId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(adminPermissions).where(eq(adminPermissions.adminId, adminId));
+}
+
+export async function hasAdminPermission(adminId: number, permission: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.select().from(adminPermissions).where(and(eq(adminPermissions.adminId, adminId), eq(adminPermissions.permission, permission), eq(adminPermissions.granted, true))).limit(1);
+  return result.length > 0;
+}
+
+export async function grantAdminPermission(adminId: number, permission: string, grantedBy: number) {
+  const db = await getDb();
+  if (!db) return null;
+  return db.insert(adminPermissions).values({ adminId, permission, granted: true, grantedBy });
+}
+
+export async function revokeAdminPermission(adminId: number, permission: string) {
+  const db = await getDb();
+  if (!db) return null;
+  return db.update(adminPermissions).set({ granted: false }).where(and(eq(adminPermissions.adminId, adminId), eq(adminPermissions.permission, permission)));
+}
+
+// ============ SECURITY EVENTS ============
+export async function createSecurityEvent(data: InsertSecurityEvent) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(securityEvents).values(data);
+  return result;
+}
+
+export async function getSecurityEvents(limit: number = 100, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(securityEvents).orderBy(desc(securityEvents.createdAt)).limit(limit).offset(offset);
+}
+
+export async function getUnresolvedSecurityEvents() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(securityEvents).where(eq(securityEvents.resolved, false)).orderBy(desc(securityEvents.createdAt));
+}
+
+export async function resolveSecurityEvent(eventId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  return db.update(securityEvents).set({ resolved: true }).where(eq(securityEvents.id, eventId));
+}
+
+export async function getSecurityEventsByIP(ipAddress: string, hours: number = 24) {
+  const db = await getDb();
+  if (!db) return [];
+  const startTime = new Date(Date.now() - hours * 60 * 60 * 1000);
+  return db.select().from(securityEvents).where(and(eq(securityEvents.ipAddress, ipAddress), gte(securityEvents.createdAt, startTime))).orderBy(desc(securityEvents.createdAt));
 }

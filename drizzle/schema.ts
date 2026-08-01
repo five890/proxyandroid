@@ -129,3 +129,73 @@ export const siteSettings = mysqlTable("site_settings", {
 
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type InsertSiteSetting = typeof siteSettings.$inferInsert;
+
+/**
+ * Audit logs - rastreamento de todas as ações administrativas
+ */
+export const auditLogs = mysqlTable("audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  adminId: int("adminId").notNull(),
+  adminUsername: varchar("adminUsername", { length: 100 }).notNull(),
+  action: varchar("action", { length: 100 }).notNull(), // 'CREATE_CLIENT', 'DELETE_CLIENT', 'UPDATE_CREDITS', etc
+  targetType: varchar("targetType", { length: 50 }).notNull(), // 'CLIENT', 'ADMIN', 'FILE', etc
+  targetId: int("targetId"),
+  targetName: varchar("targetName", { length: 256 }),
+  details: text("details"), // JSON com detalhes da ação
+  ipAddress: varchar("ipAddress", { length: 64 }),
+  userAgent: text("userAgent"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+/**
+ * Usage statistics - estatísticas de uso do sistema
+ */
+export const usageStats = mysqlTable("usage_stats", {
+  id: int("id").autoincrement().primaryKey(),
+  credentialId: int("credentialId").notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  loginCount: int("loginCount").default(0).notNull(),
+  downloadCount: int("downloadCount").default(0).notNull(),
+  creditsUsed: int("creditsUsed").default(0).notNull(),
+  activeSessions: int("activeSessions").default(0).notNull(),
+  totalDataTransferred: bigint("totalDataTransferred", { mode: "number" }).default(0).notNull(),
+});
+
+export type UsageStat = typeof usageStats.$inferSelect;
+export type InsertUsageStat = typeof usageStats.$inferInsert;
+
+/**
+ * Admin permissions - controle de permissões granulares para admins
+ */
+export const adminPermissions = mysqlTable("admin_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  adminId: int("adminId").notNull(),
+  permission: varchar("permission", { length: 100 }).notNull(), // 'CREATE_CLIENT', 'DELETE_CLIENT', 'MANAGE_ADMINS', etc
+  granted: boolean("granted").default(true).notNull(),
+  grantedAt: timestamp("grantedAt").defaultNow().notNull(),
+  grantedBy: int("grantedBy"),
+});
+
+export type AdminPermission = typeof adminPermissions.$inferSelect;
+export type InsertAdminPermission = typeof adminPermissions.$inferInsert;
+
+/**
+ * Security events - eventos de segurança (login falhado, acesso negado, etc)
+ */
+export const securityEvents = mysqlTable("security_events", {
+  id: int("id").autoincrement().primaryKey(),
+  eventType: varchar("eventType", { length: 100 }).notNull(), // 'FAILED_LOGIN', 'UNAUTHORIZED_ACCESS', 'RATE_LIMIT_EXCEEDED', etc
+  username: varchar("username", { length: 100 }),
+  ipAddress: varchar("ipAddress", { length: 64 }).notNull(),
+  userAgent: text("userAgent"),
+  details: text("details"),
+  severity: mysqlEnum("severity", ["low", "medium", "high", "critical"]).default("medium").notNull(),
+  resolved: boolean("resolved").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SecurityEvent = typeof securityEvents.$inferSelect;
+export type InsertSecurityEvent = typeof securityEvents.$inferInsert;
