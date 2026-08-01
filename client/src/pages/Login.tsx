@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
+import { SITE_CONFIG } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,10 +95,10 @@ export default function Login() {
         <div className="hidden lg:flex flex-col justify-center space-y-8">
           <div>
             <h1 className="text-5xl font-black text-white mb-4 tracking-tight">
-              Shelby Community
+              {SITE_CONFIG.name}
             </h1>
             <p className="text-xl text-red-400 font-semibold mb-2">
-              Portal de Acesso Proxy
+              {SITE_CONFIG.shortDescription}
             </p>
             <p className="text-gray-400 text-base leading-relaxed">
               Acesse sua conta com segurança e gerencie seus acessos proxy de forma simples e intuitiva.
@@ -145,10 +146,10 @@ export default function Login() {
               <Shield className="w-7 h-7 text-red-500" />
             </div>
             <h2 className="text-3xl lg:text-2xl font-black text-white mb-1 tracking-wide uppercase">
-              Shelby Community
+              {SITE_CONFIG.name}
             </h2>
             <p className="text-red-400 text-sm font-medium tracking-wide">
-              Ativar Acesso Proxy
+              {SITE_CONFIG.activationText}
             </p>
           </div>
 
@@ -239,7 +240,7 @@ export default function Login() {
 
           {/* Footer */}
           <p className="text-center text-xs text-gray-600 mt-6">
-            Proteção de dispositivo ativa. Shelby Community.
+            {SITE_CONFIG.protectionText}
           </p>
         </div>
       </div>

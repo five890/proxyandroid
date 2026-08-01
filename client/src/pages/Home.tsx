@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Shield, Lock, Download, Monitor, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
+import { SITE_CONFIG } from "@/lib/config";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -20,7 +21,7 @@ export default function Home() {
             <div className="w-9 h-9 rounded-lg bg-red-600/20 flex items-center justify-center">
               <Shield className="w-5 h-5 text-red-500" />
             </div>
-            <span className="text-lg font-bold text-red-500 tracking-wide uppercase">Shelby Community</span>
+            <span className="text-lg font-bold text-red-500 tracking-wide uppercase">{SITE_CONFIG.name}</span>
           </div>
           <Button
             variant="ghost"
@@ -41,11 +42,11 @@ export default function Home() {
             <span className="text-xs font-semibold text-red-400 tracking-wide uppercase">Acesso Exclusivo</span>
           </div>
           <h1 className="text-5xl md:text-6xl font-black text-white mb-4 leading-tight">
-            Shelby
-            <span className="text-red-500"> Community</span>
+            {SITE_CONFIG.name.split(' ')[0]}
+            <span className="text-red-500"> {SITE_CONFIG.name.split(' ').slice(1).join(' ')}</span>
           </h1>
           <p className="text-lg text-gray-400 mb-10">
-            Plataforma exclusiva de acesso premium. Controle total, proteção por dispositivo e distribuição segura.
+            {SITE_CONFIG.description}
           </p>
           <Button
             size="lg"
@@ -94,7 +95,7 @@ export default function Home() {
       <footer className="relative z-10 border-t border-red-900/20 mt-12">
         <div className="max-w-6xl mx-auto px-6 py-6 text-center">
           <p className="text-xs text-gray-600">
-            Shelby Community &mdash; Plataforma de acesso premium
+            {SITE_CONFIG.footerText}
           </p>
         </div>
       </footer>

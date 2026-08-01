@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatBytes } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { SITE_CONFIG } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -524,7 +525,8 @@ function CreateClientDialog({ open, onClose, mutation }: any) {
                   if (createdCredentials.accessType === 'proxy_android' && createdCredentials.accessKey) {
                     all += `\nChave: ${createdCredentials.accessKey}`;
                   }
-                  all += `\nLink de Ativação: https://proxyandroid-production.up.railway.app`;
+                  const activationLink = SITE_CONFIG.url.startsWith('http') ? SITE_CONFIG.url : 'https://' + SITE_CONFIG.url;
+                  all += `\nLink de Ativação: ${activationLink}`;
                   copyToClipboard(all, "Credenciais");
                 }}
               >
