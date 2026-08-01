@@ -16,6 +16,7 @@ import {
   History,
   ShieldCheck,
   Zap,
+  Globe,
 } from "lucide-react";
 import {
   Select,
@@ -159,7 +160,8 @@ export function ClientsPanel({
                 <th className="px-4 py-3 text-left font-semibold">Créditos</th>
                 <th className="px-4 py-3 text-left font-semibold">Validade</th>
                 <th className="px-4 py-3 text-left font-semibold">Status</th>
-                <th className="px-4 py-3 text-left font-semibold">Online</th>
+                <th className="px-4 py-3 text-left font-semibold">Dispositivo</th>
+                <th className="px-4 py-3 text-left font-semibold">Último IP</th>
                 <th className="px-4 py-3 text-right font-semibold">Ações</th>
               </tr>
             </thead>
@@ -233,11 +235,28 @@ export function ClientsPanel({
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      {client.activeSessionCount > 0 ? (
-                        <span className="text-green-500 font-semibold">{client.activeSessionCount} online</span>
-                      ) : (
-                        <span className="text-gray-500">—</span>
-                      )}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1">
+                          {client.activeSessionCount > 0 ? (
+                            <Badge className="bg-green-500/20 text-green-400 w-fit">Online</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-gray-500 w-fit">Offline</Badge>
+                          )}
+                          {client.deviceType && (
+                            <span className="text-xs">
+                              {client.deviceType === 'mobile' ? '📱' : '💻'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-gray-400">
+                          {client.role === 'admin' ? 'Admin' : 'Cliente'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-mono text-gray-400">
+                        {client.deviceIP || "—"}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
@@ -263,8 +282,11 @@ export function ClientsPanel({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 hover:bg-purple-500/20"
-                          onClick={() => onHistoryClick(client)}
-                          title="Histórico"
+                          onClick={() => {
+                            setSelectedClientForHistory(client);
+                            setAccessHistoryOpen(true);
+                          }}
+                          title="Histórico de Acessos"
                         >
                           <History className="w-4 h-4 text-purple-400" />
                         </Button>
@@ -337,6 +359,11 @@ export function ClientsPanel({
                     <span className="text-green-500">{client.activeSessionCount} online</span>
                   </div>
                 )}
+                
+                <div className="flex items-center gap-2 bg-gray-900/50 p-2 rounded col-span-2">
+                  <Globe className="w-3 h-3 text-blue-400" />
+                  <span className="text-gray-400 font-mono">{client.deviceIP || "Sem IP registrado"}</span>
+                </div>
               </div>
 
               {/* Actions */}
@@ -358,6 +385,18 @@ export function ClientsPanel({
                 >
                   <Zap className="w-3 h-3 mr-1" />
                   Créditos
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-8 text-xs border-gray-600 hover:bg-purple-500/20"
+                  onClick={() => {
+                    setSelectedClientForHistory(client);
+                    setAccessHistoryOpen(true);
+                  }}
+                >
+                  <History className="w-3 h-3 mr-1" />
+                  Acessos
                 </Button>
                 <Button
                   variant="outline"
