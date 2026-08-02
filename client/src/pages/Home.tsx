@@ -48,13 +48,23 @@ export default function Home() {
           <p className="text-lg text-gray-400 mb-10">
             {SITE_CONFIG.description}
           </p>
-          <Button
-            size="lg"
-            onClick={() => setLocation("/login")}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold px-10 py-6 text-lg tracking-wide"
-          >
-            Acessar Portal
-          </Button>
+          <div className="flex flex-col items-center gap-4">
+            <Button
+              size="lg"
+              onClick={() => setLocation("/login")}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold px-10 py-6 text-lg tracking-wide"
+            >
+              Acessar Portal
+            </Button>
+            <a 
+              href="https://discord.gg/shelbys" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-red-500 hover:text-red-400 font-medium transition-colors"
+            >
+              Entrar no Discord oficial dos criadores do site
+            </a>
+          </div>
         </div>
 
         {/* Features Grid */}
