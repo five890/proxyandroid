@@ -62,7 +62,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="text-red-500 hover:text-red-400 font-medium transition-colors"
             >
-              Entrar no Discord oficial dos criadores do site
+              entre no servidor dos criadores do site
             </a>
           </div>
         </div>
@@ -119,7 +119,7 @@ export default function Home() {
       >
         <MessageSquare className="w-5 h-5" />
         <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 font-medium">
-          Discord Oficial
+          entre no servidor dos criadores do site
         </span>
       </a>
     </div>

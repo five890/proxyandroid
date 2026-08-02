@@ -267,7 +267,7 @@ function DashboardLayoutContent({
       >
         <MessageSquare className="w-5 h-5" />
         <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 font-medium">
-          Discord Oficial
+          entre no servidor dos criadores do site
         </span>
       </a>
     </>
