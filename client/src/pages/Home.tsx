@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Shield, Lock, Download, Monitor, CreditCard } from "lucide-react";
+import { Shield, Lock, Download, Monitor, CreditCard, MessageSquare } from "lucide-react";
 import { useLocation } from "wouter";
 import { SITE_CONFIG } from "@/lib/config";
 
@@ -48,23 +48,13 @@ export default function Home() {
           <p className="text-lg text-gray-400 mb-10">
             {SITE_CONFIG.description}
           </p>
-          <div className="flex flex-col items-center gap-4">
-            <Button
-              size="lg"
-              onClick={() => setLocation("/login")}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold px-10 py-6 text-lg tracking-wide"
-            >
-              Acessar Portal
-            </Button>
-            <a 
-              href="https://discord.gg/shelby" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-red-500 hover:text-red-400 font-medium transition-colors"
-            >
-              Entrar no Discord oficial dos criadores do site
-            </a>
-          </div>
+          <Button
+            size="lg"
+            onClick={() => setLocation("/login")}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold px-10 py-6 text-lg tracking-wide"
+          >
+            Acessar Portal
+          </Button>
         </div>
 
         {/* Features Grid */}
@@ -109,6 +99,19 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Floating Discord Button */}
+      <a
+        href="https://discord.gg/shelbys"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#5865F2] hover:bg-[#4752C4] text-white px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 group"
+      >
+        <MessageSquare className="w-5 h-5" />
+        <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 font-medium">
+          Discord Oficial
+        </span>
+      </a>
     </div>
   );
 }
