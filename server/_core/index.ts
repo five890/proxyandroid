@@ -101,10 +101,13 @@ async function createTables() {
     if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] createdByAdmin already exists");
   }
   try {
-    await connection.query(`ALTER TABLE client_credentials ADD COLUMN accessType ENUM('proxy_ios', 'proxy_android') NOT NULL DEFAULT 'proxy_ios'`);
+    await connection.query(`ALTER TABLE client_credentials ADD COLUMN accessType VARCHAR(32) DEFAULT 'proxy_ios'`);
     console.log("[DB] Added accessType column");
   } catch (e: any) {
-    if (e.code !== 'ER_DUP_FIELDNAME') console.log("[DB] accessType already exists");
+    if (e.code === 'ER_DUP_FIELDNAME') {
+      // Garantir que é VARCHAR e não ENUM
+      await connection.query(`ALTER TABLE client_credentials MODIFY COLUMN accessType VARCHAR(32) DEFAULT 'proxy_ios'`);
+    }
   }
 
   try {

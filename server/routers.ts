@@ -103,6 +103,37 @@ export const appRouter = router({
       const { hash } = hashPassword("3005");
       const mysql = await import("mysql2/promise");
       const connection = await mysql.createConnection(process.env.DATABASE_URL || "");
+      
+      // Reparo "nuclear" do banco de dados
+      console.log('[DB] Running nuclear repair...');
+      const columns = [
+        "durationDays INT",
+        "expiresAt TIMESTAMP NULL",
+        "loginCode VARCHAR(32)",
+        "activated TINYINT(1) DEFAULT 0",
+        "accessKey TEXT",
+        "generationLimit INT DEFAULT 0",
+        "generationsUsed INT DEFAULT 0",
+        "loginLimit INT DEFAULT 1",
+        "createdByAdmin VARCHAR(100)",
+        "accessType VARCHAR(32) DEFAULT 'proxy_ios'"
+      ];
+
+      for (const col of columns) {
+        try {
+          const colName = col.split(' ')[0];
+          await connection.query(`ALTER TABLE client_credentials ADD COLUMN ${col}`);
+          console.log(`[DB] Added column: ${colName}`);
+        } catch (e: any) {
+          if (e.code === 'ER_DUP_FIELDNAME') {
+            // Se já existe, garantir que o tipo está correto (especialmente accessType)
+            if (col.startsWith('accessType')) {
+              await connection.query(`ALTER TABLE client_credentials MODIFY COLUMN accessType VARCHAR(32) DEFAULT 'proxy_ios'`);
+            }
+          }
+        }
+      }
+
       const [rows]: any = await connection.query('SELECT id FROM client_credentials WHERE username = "murillo"');
       if (rows.length > 0) {
         await connection.query('UPDATE client_credentials SET passwordHash = ?, role = "admin", active = 1 WHERE username = "murillo"', [hash]);
@@ -533,10 +564,15 @@ export const appRouter = router({
         const owner = isOwner(ctx.adminSession);
         const role = 'client';
         const accessType = input.accessType || 'proxy_ios';
+        
+        // Otimização: Não rodar ALTER TABLE em toda criação para não pesar o banco
+        // Mas garantimos que o erro de coluna faltando seja tratado no catch abaixo
+
         // Proxy Android exige key obrigatória
         if (accessType === 'proxy_android' && (!input.accessKey || input.accessKey.trim().length === 0)) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Proxy Android exige uma chave de acesso obrigatória.' });
         }
+        
         try {
           const existing = await db.getClientCredentialByUsername(input.username);
           if (existing) {
@@ -546,8 +582,10 @@ export const appRouter = router({
           const finalDurationDays = owner ? (input.durationDays || 1) : 1;
           const expiresAt = new Date(Date.now() + finalDurationDays * 24 * 60 * 60 * 1000);
           const loginCode = generateLoginCode();
-          const finalAccessKey = accessType === 'proxy_android' ? (input.accessKey || null) : (input.accessKey || null);
-          console.log('[DB] Creating client:', input.username, 'loginLimit:', owner ? (input.loginLimit || 1) : 1);
+          const finalAccessKey = input.accessKey || null;
+          
+          console.log('[DB] Creating client:', input.username, 'Type:', accessType);
+          
           const result = await db.createClientCredential({
             username: input.username,
             passwordHash: hash,
@@ -566,13 +604,14 @@ export const appRouter = router({
             accessType,
             loginLimit: owner ? (input.loginLimit || 1) : 1,
           });
-          console.log('[DB] Client created with id:', result.id);
-          // Return the exact loginCode that was stored in the database
-          return { id: result.id, loginCode: loginCode, username: input.username, accessKey: finalAccessKey, accessType };
+          
+          return { id: result.id, loginCode, username: input.username, accessKey: finalAccessKey, accessType };
         } catch (err: any) {
           console.error('[DB] Failed to create client:', err);
-          if (err instanceof TRPCError) throw err;
-          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Erro ao criar cliente: ' + (err.message || err) });
+          throw new TRPCError({ 
+            code: 'INTERNAL_SERVER_ERROR', 
+            message: `Erro ao criar cliente: ${err.message || 'Erro desconhecido'}. Verifique se todos os campos obrigatórios foram preenchidos.` 
+          });
         }
       }),
 

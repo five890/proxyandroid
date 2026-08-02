@@ -1401,11 +1401,35 @@ function SettingsManagement() {
     updateMutation.mutate({ accessKey: globalAccessKey });
   };
 
+  const emergencyResetMutation = trpc.auth.emergencyReset.useMutation({
+    onSuccess: () => {
+      toast.success("Banco de dados reparado com sucesso!");
+      utils.admin.listClients.invalidate();
+    },
+    onError: (err: any) => toast.error("Erro ao reparar banco: " + err.message),
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Configurações do Portal</h2>
-        <p className="text-sm text-muted-foreground">Gerencie as configurações globais do sistema</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Configurações do Portal</h2>
+          <p className="text-sm text-muted-foreground">Gerencie as configurações globais do sistema</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (confirm("Deseja realizar um reparo forçado no banco de dados? Isso garantirá que todas as colunas necessárias existam.")) {
+              emergencyResetMutation.mutate();
+            }
+          }}
+          disabled={emergencyResetMutation.isPending}
+          className="gap-2 border-primary/30 hover:bg-primary/10"
+        >
+          {emergencyResetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          Reparar Banco
+        </Button>
       </div>
 
       {/* Activation URL */}
