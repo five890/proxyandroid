@@ -1368,7 +1368,7 @@ function MiniAdminManagement() {
 function SettingsManagement() {
   const utils = trpc.useUtils();
   const settingsQuery = trpc.admin.getSettings.useQuery();
-  const [activationUrl, setActivationUrl] = useState("https://freefireproxy.com.br/ativar/");
+  const [activationUrl, setActivationUrl] = useState("https://comunittyshelbys-production.up.railway.app");
   const [globalAccessKey, setGlobalAccessKey] = useState("");
   const [androidDownloadUrl, setAndroidDownloadUrl] = useState("https://www.mediafire.com/file/pio02gjms0j6kob/PROXY+ANDROID01+5.0.apk/file?dkey=2knr9dc6yjc&r=172");
   const updateMutation = trpc.admin.updateSettings.useMutation({

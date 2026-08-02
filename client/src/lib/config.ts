@@ -9,5 +9,5 @@ export const SITE_CONFIG = {
   footerText: "Shelby Community — Plataforma de acesso premium",
   protectionText: "Proteção de dispositivo ativa. Shelby Community.",
   activationText: "Ativar Acesso Proxy",
-  url: "https://proxyandroid-production.up.railway.app", // Altere aqui se o link mudar
+  url: "https://comunittyshelbys-production.up.railway.app", // Altere aqui se o link mudar
 };
